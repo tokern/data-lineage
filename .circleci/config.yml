@@ -1,0 +1,126 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2.1
+orbs:
+  codecov: codecov/codecov@1.0.5
+workflows:
+  build_and_deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - build38:
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+
+jobs:
+  build: &test-template
+    environment:
+      PYVERSION: "3.8.1"
+    docker:
+      - image: circleci/python:3.8.1
+        environment:
+          PIPENV_VENV_IN_PROJECT: true
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          key: deps-{{ checksum "Pipfile.lock" }}-{{ .Environment.PYVERSION }}
+
+      - run: &install-deps
+          name: install dependencies
+          command: |
+            sudo pip install pipenv
+            pipenv install --dev
+
+      - save_cache:
+          key: deps-{{ checksum "Pipfile.lock" }}-{{ .Environment.PYVERSION }}
+          paths:
+            - ".venv"
+
+      # run tests!
+      - run:
+          name: run tests
+          command: |
+            pipenv run pytest --pylint --pylint-error-types=EF --junitxml=junit/test-results.xml --cov=data-lineage --cov-report=xml --cov-report=html tests/
+
+      - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: test-results
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
+      - codecov/upload:
+          file: coverage.xml
+
+  deploy:
+    environment:
+      PYVERSION: "3.8.1"
+    docker:
+      - image: tokern/python:3.7.5-buster
+        environment:
+          PYVERSION: "3.8.1"
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-{{ checksum "Pipfile.lock" }}-{{ .Environment.PYVERSION }}
+      - run:
+          name: install dependencies
+          command: |
+            sudo pip install pipenv
+            pipenv install --dev
+
+      - save_cache:
+          key: deps-{{ checksum "Pipfile.lock" }}-{{ .Environment.PYVERSION }}
+          paths:
+            - ".venv"
+
+      - run:
+          name: verify git tag vs. version
+          command: |
+            pipenv run python setup.py verify
+
+      - run:
+          name: init .pypirc
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+      - run:
+          name: create packages
+          command: |
+            pipenv run python setup.py sdist bdist_wheel
+
+      - run:
+          name: upload to pypi
+          command: |
+            source .venv/bin/activate
+            pipenv run twine upload dist/*
+
+      - run:
+          name: install git release utilities
+          command: |
+            go get github.com/aktau/github-release
+            go get -u github.com/git-chglog/git-chglog/cmd/git-chglog
+
+      - run:
+          name: release
+          command: |
+            ~/go/bin/git-chglog $CIRCLE_TAG | ~/go/bin/github-release release --description - --tag $CIRCLE_TAG
+
