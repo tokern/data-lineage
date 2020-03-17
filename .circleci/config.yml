@@ -12,10 +12,6 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - build38:
-          filters:
-            tags:
-              only: /.*/
       - deploy:
           requires:
             - build
