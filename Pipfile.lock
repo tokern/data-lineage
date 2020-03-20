@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "07002c0391ebecd58b735f7b6cf583fcac6cd96604d857f3e2ad22f8c35da931"
+            "sha256": "38acaee4934c15076104bdc54bd1c403873701c2c5c07d9d1d34977de4815f6d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -15,7 +15,31 @@
             }
         ]
     },
-    "default": {},
+    "default": {
+        "pglast": {
+            "hashes": [
+                "sha256:0eeb140abe24148f5ec771cd6acc7ab5efc84541c18c02144a5a0015d11e915b",
+                "sha256:100fe6319ac4fb37d53e24f19767ee9556eb59b386c027b84b61306897c896b3",
+                "sha256:296f2994c136ceb8f52cf98de73ada2da40c06eddd7598207194aa75f8c0b6a7",
+                "sha256:327dab64fd177eef0eccc10959c352ba22c8ef70f1eaca9f712d58573b326549",
+                "sha256:3cff2142c06ddaf7b0ff04e6a35a0d4c2989431f052b0fea2c3bc79469b81837",
+                "sha256:4495b5ad82ac18737df7729e8f360291ad5d5b28478d01dc073af5ea4bf0397a",
+                "sha256:5aba6a94489526b66c2c690d686e88b73bfd5f601b4d98e8c8c4da378777be59",
+                "sha256:5d183d2259969f5ad9c81955c1d628f134ad9c3dafc97883eec6ada30eff17fc",
+                "sha256:70b4e50d355052181f690a12ba1700268b428cc984da75d6598fbf0737571a94",
+                "sha256:88f74bea8986803c832f82f00da927a8bafad43c9b9f006223c21b34d0678f4b",
+                "sha256:89dd5f5d4b5b2a1a4cefa483ab234aa3acbbdf0cbd2931a8fae1f7258627a132",
+                "sha256:a26ba77127b363446955e8a5317b3194defb1c1bb9d2ed5e7d4830fd4f066d97",
+                "sha256:b59009d3acf412c0cda7a9c8c5d01b256a3d6638dffa52e8c8591ca4b534ea49",
+                "sha256:bf10846005409cd037c804e278205dad069b20dc2aafeb273c2275cb137671a9",
+                "sha256:c3578e93bfa81118e095319d454fb5d0a4e826c58fef5675ed9e89fa1a579f65",
+                "sha256:fcfb5b6844c9350fcafbe30c0251e401b72b8b12cb8a1d39984f3c4083402b31",
+                "sha256:fee345b584317e4ef301f3242713e0edaeb8530c02c5874d3beb2882ea22fdd9"
+            ],
+            "index": "pypi",
+            "version": "==1.10"
+        }
+    },
     "develop": {
         "appdirs": {
             "hashes": [
@@ -239,7 +263,6 @@
                 "sha256:3479b861cc2b6407de5188695fa1a8d57e5072d7059322469b62628869b8e36e",
                 "sha256:d6c6b49683446d2407d2fe3acb7a368a77ff063f9182fe427da15d622adc24cf"
             ],
-            "markers": "sys_platform == 'linux'",
             "version": "==0.4.3"
         },
         "keyring": {
