@@ -32,9 +32,11 @@ class Visitor:
     def visit_scalar(self, obj):
         pass
 
+    def visit_copy_stmt(self, node):
+        self.visit(node.relation)
+
     def visit_insert_stmt(self, node):
-        if node.withClause:
-            self.visit(node.withClause)
+        self.visit(node.withClause)
 
         self.visit(node.relation)
         self.visit(node.cols)
@@ -42,11 +44,16 @@ class Visitor:
         self.visit(node.onConflictClause)
         self.visit(node.returningList)
 
+    def visit_join_expr(self, node):
+        self.visit(node.larg)
+        self.visit(node.rarg)
+
     def visit_raw_stmt(self, node):
         self.visit(node.stmt)
 
     def visit_select_stmt(self, node):
         self.visit(node.withClause)
+        self.visit(node.intoClause)
 
         if node.valuesLists:
             self.visit(node.valuesLists)
@@ -66,3 +73,15 @@ class Visitor:
             self.visit(node.limitCount)
             self.visit(node.limitOffset)
             self.visit(node.lockingClause)
+
+    def visit_into_clause(self, node):
+        self.visit(node.colNames)
+        self.visit(node.rel)
+        self.visit(node.tableSpaceName)
+
+    def visit_create_table_as_stmt(self, node):
+        self.visit(node.into)
+        self.visit(node.query)
+
+    def visit_range_subselect(self, node):
+        self.visit(node.subquery)

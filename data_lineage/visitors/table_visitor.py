@@ -14,3 +14,6 @@ class TableVisitor(Visitor):
             self._sources.append((node.schemaname, node.relname))
         else:
             self._sources.append((None, node.relname))
+
+    def visit_into_clause(self, node):
+        pass
