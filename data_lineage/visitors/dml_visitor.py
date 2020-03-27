@@ -17,15 +17,32 @@ class DmlVisitor(Visitor):
     def sources(self):
         return self._sources
 
-
-class InsertVisitor(DmlVisitor):
     def visit_range_var(self, node):
         if node.schemaname:
             self._target = (node.schemaname, node.relname)
         else:
             self._target = (None, node.relname)
 
+
+class SelectSourceVisitor(DmlVisitor):
     def visit_select_stmt(self, node):
         table_visitor = TableVisitor()
         table_visitor.visit(node)
         self._sources = table_visitor.sources
+
+
+class SelectIntoVisitor(DmlVisitor):
+    def visit_select_stmt(self, node):
+        super(SelectIntoVisitor, self).visit(node.intoClause)
+        table_visitor = TableVisitor()
+        table_visitor.visit(node)
+        self._sources = table_visitor.sources
+
+
+class CopyFromVisitor(DmlVisitor):
+    def visit_copy_stmt(self, node):
+        if node.is_from:
+            super(CopyFromVisitor, self).visit_copy_stmt(node)
+
+
+
