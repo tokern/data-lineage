@@ -8,6 +8,7 @@ python_version = "3.7"
 
 [packages]
 pglast = "*"
+inflection = "*"
 
 [dev-packages]
 black = "==19.3b0"

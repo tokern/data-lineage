@@ -1,24 +1,68 @@
-from data_lineage.parser.node import AcceptingBase, AcceptingList, AcceptingNode, AcceptingScalar
+import inflection
+import logging
+
+from data_lineage.parser.node import AcceptingBase, AcceptingList, AcceptingNode, AcceptingScalar, Missing
 
 
 class Visitor:
-    @classmethod
-    def visit(cls, obj):
+    def visit(self, obj):
+        if obj is None:
+            return None
         if isinstance(obj, AcceptingNode):
-            cls.visit_node(obj)
+            self.visit_node(obj)
         elif isinstance(obj, AcceptingList):
-            cls.visit_list(obj)
+            self.visit_list(obj)
         elif isinstance(obj, AcceptingScalar):
-            cls.visit_scalar(obj)
+            self.visit_scalar(obj)
 
-    @classmethod
-    def visit_list(cls, obj):
+    def visit_list(self, obj):
+        for item in obj:
+            item.accept(self)
+
+    def visit_node(self, node):
+        method_name = "visit_{}".format(inflection.underscore(node.node_tag))
+        logging.debug("Method name: {}", method_name)
+        try:
+            method = getattr(self, method_name)
+            if callable(method):
+                method(node)
+        except AttributeError:
+            logging.debug("{} not found in class {}", method_name, node.node_tag)
+
+    def visit_scalar(self, obj):
         pass
 
-    @classmethod
-    def visit_node(cls, obj):
-        pass
+    def visit_insert_stmt(self, node):
+        if node.withClause:
+            self.visit(node.withClause)
 
-    @classmethod
-    def visit_scalar(cls, obj):
-        pass
+        self.visit(node.relation)
+        self.visit(node.cols)
+        self.visit(node.selectStmt)
+        self.visit(node.onConflictClause)
+        self.visit(node.returningList)
+
+    def visit_raw_stmt(self, node):
+        self.visit(node.stmt)
+
+    def visit_select_stmt(self, node):
+        self.visit(node.withClause)
+
+        if node.valuesLists:
+            self.visit(node.valuesLists)
+        elif node.targetList is Missing:
+            self.visit(node.larg)
+            self.visit(node.op)
+            self.visit(node.rarg)
+        else:
+            self.visit(node.distinctClause)
+            self.visit(node.targetList)
+            self.visit(node.fromClause)
+            self.visit(node.whereClause)
+            self.visit(node.groupClause)
+            self.visit(node.havingClause)
+            self.visit(node.windowClause)
+            self.visit(node.sortClause)
+            self.visit(node.limitCount)
+            self.visit(node.limitOffset)
+            self.visit(node.lockingClause)

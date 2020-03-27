@@ -86,8 +86,7 @@ class AcceptingBase:
         return self._parent_attribute
 
     def accept(self, visitor):
-        for item in self.traverse():
-            visitor.visit(item)
+        visitor.visit(self)
 
 
 class AcceptingList(AcceptingBase):
@@ -182,7 +181,7 @@ class AcceptingNode(AcceptingBase):
         except KeyError:
             return Missing
         else:
-            return Base(value, self, attr)
+            return AcceptingBase(value, self, attr)
 
     def __getitem__(self, attr):
         if isinstance(attr, tuple):
