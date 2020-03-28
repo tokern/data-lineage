@@ -9,6 +9,7 @@ python_version = "3.7"
 [packages]
 pglast = "*"
 inflection = "*"
+networkx = "*"
 
 [dev-packages]
 black = "==19.3b0"
