@@ -1,3 +1,4 @@
+from data_lineage.graph.graph import Graph
 from data_lineage.parser.parser import parse as parse_single
 from data_lineage.visitors.dml_visitor import SelectSourceVisitor, SelectIntoVisitor, CopyFromVisitor
 
@@ -10,7 +11,7 @@ def parse(queries):
     return parsed
 
 
-def dml_queries(parsed):
+def get_dml_queries(parsed):
     queries = []
     for node in parsed:
         select_source_visitor = SelectSourceVisitor()
@@ -25,3 +26,9 @@ def dml_queries(parsed):
 
     return queries
 
+
+def create_graph(dml_queries):
+    graph = Graph()
+    graph.create_graph(dml_queries)
+
+    return graph.graph

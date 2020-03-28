@@ -1,5 +1,7 @@
+from networkx import nodes, edges
+
 from data_lineage.catalog.query import Query
-from data_lineage.data_lineage import parse, dml_queries
+from data_lineage.data_lineage import parse, get_dml_queries, create_graph
 
 queries = [
     """
@@ -63,8 +65,39 @@ def test_visitor():
     query_objs = [Query(q) for q in queries]
     parsed = parse(query_objs)
 
-    dml = dml_queries(parsed)
+    dml = get_dml_queries(parsed)
     assert len(dml) == len(queries)
 
     for d in dml:
         assert len(d.sources) > 0 and d.target is not None
+
+
+def test_graph():
+    query_objs = [Query(q) for q in queries]
+    parsed = parse(query_objs)
+
+    dml = get_dml_queries(parsed)
+    graph = create_graph(dml)
+
+    assert list(nodes(graph)) == [
+        (None, 'page_lookup_nonredirect'),
+        (None, 'page'),
+        (None, 'redirect'),
+        (None, 'page_lookup_redirect'),
+        (None, 'page_lookup'),
+        (None, 'filtered_pagecounts'),
+        (None, 'pagecounts'),
+        (None, 'normalized_pagecounts')
+    ]
+
+    assert list(edges(graph)) == [
+        ((None, 'page_lookup_nonredirect'), (None, 'page_lookup')),
+        ((None, 'page'), (None, 'page_lookup_nonredirect')),
+        ((None, 'page'), (None, 'page_lookup_redirect')),
+        ((None, 'redirect'), (None, 'page_lookup_nonredirect')),
+        ((None, 'redirect'), (None, 'page_lookup_redirect')),
+        ((None, 'page_lookup_redirect'), (None, 'page_lookup')),
+        ((None, 'page_lookup'), (None, 'normalized_pagecounts')),
+        ((None, 'filtered_pagecounts'), (None, 'normalized_pagecounts')),
+        ((None, 'pagecounts'), (None, 'filtered_pagecounts'))
+    ]

@@ -19,9 +19,9 @@ class DmlVisitor(Visitor):
 
     def visit_range_var(self, node):
         if node.schemaname:
-            self._target = (node.schemaname, node.relname)
+            self._target = (node.schemaname.value, node.relname.value)
         else:
-            self._target = (None, node.relname)
+            self._target = (None, node.relname.value)
 
 
 class SelectSourceVisitor(DmlVisitor):

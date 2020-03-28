@@ -11,9 +11,9 @@ class TableVisitor(Visitor):
 
     def visit_range_var(self, node):
         if node.schemaname:
-            self._sources.append((node.schemaname, node.relname))
+            self._sources.append((node.schemaname.value, node.relname.value))
         else:
-            self._sources.append((None, node.relname))
+            self._sources.append((None, node.relname.value))
 
     def visit_into_clause(self, node):
         pass
