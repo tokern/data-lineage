@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = data_lineage
+source = */data_lineage/*
 
 [report]
 exclude_lines =
@@ -10,5 +10,5 @@ exclude_lines =
     if __name__ == .__main__.:
 ignore_errors = True
 omit =
-    tests/*
+    test/*
     setup.py
