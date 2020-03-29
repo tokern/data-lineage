@@ -10,6 +10,7 @@ python_version = "3.7"
 pglast = "*"
 inflection = "*"
 networkx = "*"
+plotly = "*"
 
 [dev-packages]
 black = "==19.3b0"
