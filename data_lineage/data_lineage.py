@@ -31,4 +31,4 @@ def create_graph(dml_queries):
     graph = Graph()
     graph.create_graph(dml_queries)
 
-    return graph.graph
+    return graph
