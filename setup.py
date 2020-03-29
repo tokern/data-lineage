@@ -3,7 +3,7 @@ import re
 import sys
 from os import getenv, path
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 _version_re = re.compile(r'__version__\s*=\s*(.*)')
@@ -33,15 +33,39 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+# get the dependencies and installs
+with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
+    all_reqs = f.read().split('\n')
+
+install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
+dependency_links = [x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')]
+
 setup(
     name='data-lineage',
     version=__version__,
-    packages=['test', 'data_lineage'],
+    packages=find_packages(exclude=['docs', 'test*']),
     url='https://tokern.io/lineage',
     license='MIT',
     author='Tokern',
     author_email='info@tokern.io',
     description='Open Source Data Lineage Tool For AWS and GCP',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    download_url='https://github.com/tokern/data-lineage/tarball/' + __version__,
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Topic :: Database',
+        'Topic :: Software Development',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+    ],
+    keywords='data-lineage databases postgres graphs plotly',
+    install_requires=install_requires,
+    dependency_links=dependency_links,
     cmdclass={
         'verify': VerifyVersionCommand,
     }
