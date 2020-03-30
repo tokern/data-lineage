@@ -6,17 +6,15 @@
 
 # Data Lineage for Databases and Data Lakes
 
-Data Lineage is an open source application to query and visualize data lineage in databases, 
+data-lineage is an open source application to query and visualize data lineage in databases, 
 data warehouses and data lakes in AWS and GCP.
 
+data-lineage's goal is to be _fast_, _simple setup_ and _allow analysis_ of the lineage. To achieve these goals, data lineage has the following features :
 
-# Features
-* Generate lineage from SQL query history.
-* Supports ANSI SQL queries
-* Integrate with Jupyter Notebook
-* Visualize data lineage using Plotly. 
-* Select source or target table.
-* Pan, Zoom, Select graph
+1. **Generate data lineage from query history.** Most databases maintain query history for a few days. Therefore the setup costs of an infrastructure to capture and store metadata is minimal. 
+2. **Use networkx graph library to create a DAG of the lineage.** Networkx graphs provide programmatic access to data lineage providing rich opportunities to analyze data lineage.
+3. **Integrate with Jupyter Notebooks.** Jupyter Notebooks provide an excellent IDE to generate, manipulate and analyze data lineage graphs. 
+4. **Use Plotly to visualize the graph with rich annotations.** Plotly provides a number of features to provide rich graphs with tool tips, color coding and weights based on different attributes of the graph.
 
 Checkout an [example data lineage notebook](http://tokern.io/docs/data-lineage/example/).
 
