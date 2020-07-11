@@ -44,11 +44,12 @@ jupyter notebook
 ## Supported Technologies
 
 * Postgres
+* AWS Redshift
+* Snowflake
 
 ### Coming Soon
 
 * MySQL
-* AWS Redshift
 * SparkSQL
 * Presto
 
