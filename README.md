@@ -53,6 +53,13 @@ jupyter notebook
 * SparkSQL
 * Presto
 
+## Documentation
+
+For advanced usage, please refer to [data-lineage documentation](https://tokern.io/docs/data-lineage/index.html)
+## Survey
+
+Please take this [survey](https://forms.gle/p2oEQBJnpEguhrp3A) if you are a user or considering using data-lineage. Responses will help us prioritize features better. 
+
 ## Developer Setup
 ```shell script
 # Install dependencies
