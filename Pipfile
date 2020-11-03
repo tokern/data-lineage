@@ -11,6 +11,7 @@ pglast = "*"
 inflection = "*"
 networkx = "*"
 plotly = "*"
+dash = "*"
 
 [dev-packages]
 black = "==19.10b0"
