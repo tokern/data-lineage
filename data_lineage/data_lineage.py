@@ -7,7 +7,8 @@ from data_lineage.visitors.dml_visitor import (
 )
 
 
-def parse(queries):
+def parse(source):
+    queries = source.get_queries()
     parsed = []
     for query in queries:
         parsed.append(parse_single(query.sql))
@@ -36,3 +37,9 @@ def create_graph(dml_queries):
     graph.create_graph(dml_queries)
 
     return graph
+
+
+def get_graph(source):
+    parsed_queries = parse(source)
+    dml_queries = get_dml_queries(parsed_queries)
+    return create_graph(dml_queries)
