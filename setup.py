@@ -35,15 +35,6 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-# get the dependencies and installs
-with open(path.join(here, "requirements.txt"), encoding="utf-8") as f:
-    all_reqs = f.read().split("\n")
-
-install_requires = [x.strip() for x in all_reqs if "git+" not in x]
-dependency_links = [
-    x.strip().replace("git+", "") for x in all_reqs if x.startswith("git+")
-]
-
 setup(
     name="data-lineage",
     version=__version__,
@@ -68,7 +59,15 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     keywords="data-lineage databases postgres graphs plotly",
-    install_requires=install_requires,
-    dependency_links=dependency_links,
+    install_requires=[
+        "decorator==4.4.2",
+        "inflection==0.5.1",
+        "networkx==2.5",
+        "pglast==1.14",
+        "plotly==4.12.0",
+        "retrying==1.3.3",
+        "six==1.15.0",
+    ],
+    dependency_links=[],
     cmdclass={"verify": VerifyVersionCommand},
 )
