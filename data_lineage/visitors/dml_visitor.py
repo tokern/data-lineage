@@ -1,5 +1,3 @@
-import logging
-
 from data_lineage.parser.visitor import Visitor
 from data_lineage.visitors.table_visitor import TableVisitor
 
@@ -43,6 +41,3 @@ class CopyFromVisitor(DmlVisitor):
     def visit_copy_stmt(self, node):
         if node.is_from:
             super(CopyFromVisitor, self).visit_copy_stmt(node)
-
-
-
