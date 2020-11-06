@@ -12,6 +12,7 @@ inflection = "*"
 networkx = "*"
 plotly = "*"
 dash = "*"
+click = "*"
 
 [dev-packages]
 black = "==19.10b0"

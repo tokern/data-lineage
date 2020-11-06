@@ -1,3 +1,4 @@
+# type: ignore
 from pglast import parse_sql
 
 from data_lineage.parser.node import AcceptingNode
