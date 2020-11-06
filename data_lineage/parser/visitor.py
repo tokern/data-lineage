@@ -1,7 +1,13 @@
-import inflection
 import logging
 
-from data_lineage.parser.node import AcceptingBase, AcceptingList, AcceptingNode, AcceptingScalar, Missing
+import inflection
+
+from data_lineage.parser.node import (
+    AcceptingList,
+    AcceptingNode,
+    AcceptingScalar,
+    Missing,
+)
 
 
 class Visitor:

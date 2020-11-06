@@ -40,15 +40,19 @@ class AcceptingBase:
     a ``list`` produces a :class:`List` instance, everything else a :class:`Scalar` instance.
     """
 
-    __slots__ = ('_parent_node', '_parent_attribute')
+    __slots__ = ("_parent_node", "_parent_attribute")
 
     def __new__(cls, details, parent=None, name=None):
         if not isinstance(parent, (AcceptingNode, NoneType)):
-            raise ValueError("Unexpected value for 'parent', must be either None"
-                             " or a Node instance, got %r" % type(parent))
+            raise ValueError(
+                "Unexpected value for 'parent', must be either None"
+                " or a Node instance, got %r" % type(parent)
+            )
         if not isinstance(name, (NoneType, str, tuple)):
-            raise ValueError("Unexpected value for 'name', must be either None,"
-                             " a string or a tuple, got %r" % type(name))
+            raise ValueError(
+                "Unexpected value for 'name', must be either None,"
+                " a string or a tuple, got %r" % type(name)
+            )
         if isinstance(details, list):
             self = super().__new__(AcceptingList)
         elif isinstance(details, dict):
@@ -64,14 +68,16 @@ class AcceptingBase:
 
     def __eq__(self, other):
         if type(self) is type(other):
-            return all(getattr(self, slot) == getattr(other, slot) for slot in self.__slots__)
+            return all(
+                getattr(self, slot) == getattr(other, slot) for slot in self.__slots__
+            )
         return False
 
     def __str__(self):
         aname = self._parent_attribute
         if isinstance(aname, tuple):
-            aname = '%s[%d]' % aname
-        return '%s=%r' % (aname, self)
+            aname = "%s[%d]" % aname
+        return "%s=%r" % (aname, self)
 
     @property
     def parent_node(self):
@@ -103,12 +109,14 @@ class AcceptingList(AcceptingBase):
                  nodes
     """
 
-    __slots__ = AcceptingBase.__slots__ + ('_items',)
+    __slots__ = AcceptingBase.__slots__ + ("_items",)
 
     def _init(self, items, parent, name):
         if not isinstance(items, list) or not items:
-            raise ValueError("Unexpected value for 'items', must be a non empty"
-                             " list, got %r" % type(items))
+            raise ValueError(
+                "Unexpected value for 'items', must be a non empty"
+                " list, got %r" % type(items)
+            )
         super()._init(parent, name)
         self._items = items
 
@@ -121,7 +129,7 @@ class AcceptingList(AcceptingBase):
         # this is primarily an helper for investigating the internals of a tree.
         count = len(self)
         pivot = self[0]
-        return '[%d*%r]' % (count, pivot)
+        return "[%d*%r]" % (count, pivot)
 
     def __iter__(self):
         pnode = self.parent_node
@@ -130,15 +138,17 @@ class AcceptingList(AcceptingBase):
             yield AcceptingBase(item, pnode, (aname, idx))
 
     def __getitem__(self, index):
-        return AcceptingBase(self._items[index], self.parent_node, (self.parent_attribute, index))
+        return AcceptingBase(
+            self._items[index], self.parent_node, (self.parent_attribute, index)
+        )
 
     @property
     def string_value(self):
         if len(self) != 1:
-            raise TypeError('%r does not contain a single String node' % self)
+            raise TypeError("%r does not contain a single String node" % self)
         node = self[0]
-        if node.node_tag != 'String':
-            raise TypeError('%r does not contain a single String node' % self)
+        if node.node_tag != "String":
+            raise TypeError("%r does not contain a single String node" % self)
         return node.str.value
 
     def traverse(self):
@@ -163,17 +173,19 @@ class AcceptingNode(AcceptingBase):
                  nodes
     """
 
-    __slots__ = AcceptingBase.__slots__ + ('_node_tag', '_parse_tree')
+    __slots__ = AcceptingBase.__slots__ + ("_node_tag", "_parse_tree")
 
     def _init(self, details, parent=None, name=None):
         if not isinstance(details, dict) or len(details) != 1:
-            raise ValueError("Unexpected value for 'details', must be a dict with"
-                             " exactly one key, got %r" % type(details))
+            raise ValueError(
+                "Unexpected value for 'details', must be a dict with"
+                " exactly one key, got %r" % type(details)
+            )
         super()._init(parent, name)
         (self._node_tag, self._parse_tree), *_ = details.items()
 
     def __repr__(self):
-        return '{%s}' % self._node_tag
+        return "{%s}" % self._node_tag
 
     def __getattr__(self, attr):
         try:
@@ -190,8 +202,9 @@ class AcceptingNode(AcceptingBase):
         elif isinstance(attr, str):
             return getattr(self, attr)
         else:
-            raise ValueError('Wrong key type %r, must be str or tuple'
-                             % type(attr).__name__)
+            raise ValueError(
+                "Wrong key type %r, must be str or tuple" % type(attr).__name__
+            )
 
     def __iter__(self):
         value = self._parse_tree
@@ -219,8 +232,8 @@ class AcceptingNode(AcceptingBase):
 
     @property
     def string_value(self):
-        if self.node_tag != 'String':
-            raise TypeError('%r is not a String node' % self)
+        if self.node_tag != "String":
+            raise TypeError("%r is not a String node" % self)
         return self.str.value
 
     def traverse(self):
@@ -234,12 +247,14 @@ class AcceptingNode(AcceptingBase):
 class AcceptingScalar(AcceptingBase):
     "Represent a single scalar value."
 
-    __slots__ = AcceptingBase.__slots__ + ('_value',)
+    __slots__ = AcceptingBase.__slots__ + ("_value",)
 
     def _init(self, value, parent, name):
         if not isinstance(value, (NoneType, bool, float, int, str)):
-            raise ValueError("Unexpected value for 'value', must be either None or a"
-                             " bool|float|int|str instance, got %r" % type(value))
+            raise ValueError(
+                "Unexpected value for 'value', must be either None or a"
+                " bool|float|int|str instance, got %r" % type(value)
+            )
         super()._init(parent, name)
         self._value = value
 
@@ -247,8 +262,9 @@ class AcceptingScalar(AcceptingBase):
         if isinstance(self._value, int) and isinstance(other, int):
             return self._value & other
         else:
-            raise ValueError("Wrong operands for __and__: %r & %r"
-                             % (type(self._value), type(other)))
+            raise ValueError(
+                "Wrong operands for __and__: %r & %r" % (type(self._value), type(other))
+            )
 
     def __bool__(self):
         if self.value is None:
@@ -273,7 +289,7 @@ class AcceptingScalar(AcceptingBase):
             return super().__eq__(other)
 
     def __repr__(self):
-        return '<%r>' % self._value
+        return "<%r>" % self._value
 
     def traverse(self):
         yield self
