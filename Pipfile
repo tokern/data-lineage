@@ -13,6 +13,7 @@ networkx = "*"
 plotly = "*"
 dash = "*"
 click = "*"
+pyyaml = "*"
 
 [dev-packages]
 black = "==19.10b0"

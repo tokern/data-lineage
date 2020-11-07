@@ -78,6 +78,7 @@ setup(
         "networkx==2.5",
         "pglast==1.14",
         "plotly==4.12.0",
+        "pyyaml==5.3.1",
         "retrying==1.3.3",
         "six==1.15.0",
         "werkzeug==1.0.1",
@@ -86,4 +87,5 @@ setup(
     dependency_links=[],
     cmdclass={"verify": VerifyVersionCommand,},
     entry_points={"console_scripts": ["data_lineage = data_lineage.__main__:main"]},
+    include_package_data=True,
 )
