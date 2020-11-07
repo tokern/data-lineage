@@ -1,5 +1,3 @@
-# type: ignore
-
 from enum import Enum
 
 

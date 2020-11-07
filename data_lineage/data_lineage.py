@@ -1,4 +1,3 @@
-# type: ignore
 from data_lineage.graph.graph import Graph
 from data_lineage.parser.parser import parse as parse_single
 from data_lineage.visitors.dml_visitor import (

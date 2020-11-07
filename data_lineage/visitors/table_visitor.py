@@ -1,4 +1,3 @@
-# type: ignore
 from data_lineage.parser.visitor import Visitor
 
 
