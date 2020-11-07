@@ -56,7 +56,7 @@ jobs:
             pipenv run isort --check --diff .
             pipenv run black --check .
             pipenv run flake8 data_lineage test
-            pipenv run pytest --junitxml=junit/test-results.xml --cov-report=xml --cov-report=html test/
+            pipenv run pytest --junitxml=junit/test-results.xml --cov=data_lineage --cov-report=xml --cov-report=html test/
 
       - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: test-results
