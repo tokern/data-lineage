@@ -22,3 +22,4 @@ repos:
         entry: pipenv run flake8
         types: [python]
         exclude: setup.py
+
