@@ -69,7 +69,7 @@ setup(
         "dash-table==4.11.0",
         "decorator==4.4.2",
         "flask==1.1.2",
-        "flask-compress==1.7.0",
+        "flask-compress==1.8.0",
         "future==0.18.2",
         "inflection==0.5.1",
         "itsdangerous==1.1.0",

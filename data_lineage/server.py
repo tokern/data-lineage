@@ -14,12 +14,13 @@ class Server:
         self.app = dash.Dash(__name__, external_stylesheets=self.external_stylesheets)
         self.graph = graph
 
+        self.app.title = "Tokern Lineage Explorer"
         self.app.layout = html.Div(
             children=[
-                html.H1(children="Hello Dash"),
+                html.H1(children="Hello Explorer!"),
                 html.Div(
                     children="""
-                Lineage: A web application to explore data lineage of all your tables.
+                Lineage: Explore data lineage of all your tables. Enter a table below
             """
                 ),
                 html.Label("Enter a table name"),
