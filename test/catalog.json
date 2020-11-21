@@ -1,0 +1,178 @@
+{
+  "schemata": [
+    {
+      "name": "default",
+      "tables": [
+        {
+          "name": "pagecounts",
+          "columns": [
+            {
+              "name": "group",
+              "type": "STRING"
+            },
+            {
+              "name": "page_title",
+              "type": "STRING"
+            },
+            {
+              "name": "views",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "name": "page",
+          "columns": [
+            {
+              "name":  "page_id",
+              "type": "BIGINT"
+            },
+            {
+              "name":  "page_latest",
+              "type": "BIGINT"
+            },
+            {
+              "name": "page_title",
+              "type": "STRING"
+            }
+          ]
+        },
+        {
+          "name": "redirect",
+          "columns": [
+            {
+              "name": "rd_from",
+              "type": "BIGINT"
+            },
+            {
+              "name": "page_title",
+              "type": "STRING"
+            }
+
+          ]
+        },
+        {
+          "name": "page_lookup_nonredirect",
+          "columns": [
+            {
+              "name": "redirect_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "redirect_title",
+              "type": "STRING"
+            },
+            {
+              "name": "true_title",
+              "type": "STRING"
+            },
+            {
+              "name": "page_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "page_version",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "name": "page_lookup_redirect",
+          "columns": [
+            {
+             "name": "redirect_id",
+             "type": "BIGINT"
+            },
+            {
+              "name": "redirect_title",
+              "type": "STRING"
+            },
+            {
+              "name": "true_title",
+              "type": "STRING"
+            },
+            {
+              "name": "page_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "page_version",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "name": "page_lookup",
+          "columns": [
+            {
+              "name": "redirect_id",
+              "type": "bigint"
+            },
+            {
+              "name": "redirect_title",
+              "type": "STRING"
+            },
+            {
+              "name": "true_title",
+              "type": "STRING"
+            },
+            {
+              "name": "page_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "page_version",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "name": "filtered_pagecounts",
+          "columns": [
+            {
+              "name": "group",
+              "type": "STRING"
+            },
+            {
+              "name": "page_title",
+              "type": "STRING"
+            },
+            {
+              "name": "views",
+              "type": "BIGINT"
+            },
+            {
+              "name": "bytes_sent",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "name": "normalized_pagecounts",
+          "columns": [
+            {
+              "name": "page_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "page_title",
+              "type": "STRING"
+            },
+            {
+              "name": "page_url",
+              "type": "STRING"
+            },
+            {
+              "name": "views",
+              "type": "BIGINT"
+            },
+            {
+              "name": "bytes_sent",
+              "type": "BIGINT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

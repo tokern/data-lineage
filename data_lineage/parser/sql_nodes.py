@@ -1,6 +1,7 @@
 class SqlNode:
     def __init__(self, parent):
         self._parent = parent
+        self._bound_context = dict(cols=[])
 
     def accept(self, visitor):
         visitor.visit(self)

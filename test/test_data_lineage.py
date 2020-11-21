@@ -11,7 +11,7 @@ def test_parser():
 
 
 def test_visitor():
-    source = FileSource("test/queries.json")
+    source = FileSource("queries.json")
     parsed = parse(source)
 
     dml = get_dml_queries(parsed)

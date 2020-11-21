@@ -1,3 +1,4 @@
+from data_lineage.catalog.query import Query
 from data_lineage.graph.graph import Graph
 from data_lineage.parser.parser import parse as parse_single
 from data_lineage.visitors.dml_visitor import (
@@ -8,7 +9,7 @@ from data_lineage.visitors.dml_visitor import (
 
 
 def parse(source):
-    queries = source.get_queries()
+    queries = Query.get_queries(source)
     parsed = []
     for query in queries:
         parsed.append(parse_single(query.sql))
