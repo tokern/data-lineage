@@ -2,8 +2,10 @@ import click
 import yaml
 
 from data_lineage import __version__
+from data_lineage.catalog.catalog import Database
 from data_lineage.catalog.sources import FileSource
 from data_lineage.data_lineage import get_graph
+from data_lineage.log_mixin import LogMixin
 from data_lineage.server import Server
 
 
@@ -32,7 +34,9 @@ config_template = """
 # ####
 # File
 # ####
-# file: <path to file>
+# file:
+#   queries: <path to file>
+#   catalog: <path to file>
 
 # #########
 # Snowflake
@@ -58,16 +62,21 @@ def init(obj):
 @click.option("--port", help="Port to listen to", default=8050, type=int)
 @click.pass_obj
 def runserver(obj, port):
+    logger = LogMixin()
     with open(obj, "r") as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
 
-    source = None
-    print(config)
+    queries = None
+    catalog = None
+    logger.logger.debug(config)
     if "file" in config:
-        source = FileSource(config["file"])
+        queries = FileSource(config["file"]["queries"])
+        catalog_source = FileSource(config["file"]["catalog"])
+        catalog = Database(catalog_source.name, **catalog_source.read())
+
     #    elif config.snowflake is not None:
     #        source = Snowflake(config.file)
-    server = Server(port, get_graph(source))
+    server = Server(port, get_graph(queries, catalog, True))
     server.run_server()
 
 

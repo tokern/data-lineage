@@ -1,6 +1,7 @@
 import pytest
 
 from data_lineage.parser.parser import parse
+from data_lineage.parser.parser import parse as parse_single
 from data_lineage.visitors.dml_visitor import (
     CopyFromVisitor,
     SelectIntoVisitor,
@@ -35,8 +36,8 @@ def test_sanity_insert(target, sources, sql):
     insert_visitor = SelectSourceVisitor()
     node.accept(insert_visitor)
 
-    assert insert_visitor.target == target
-    assert insert_visitor.sources == sources
+    assert insert_visitor.target_table == target
+    assert insert_visitor.source_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -67,8 +68,8 @@ def test_sanity_ctas(target, sources, sql):
     visitor = SelectSourceVisitor()
     node.accept(visitor)
 
-    assert visitor.target == target
-    assert visitor.sources == sources
+    assert visitor.target_table == target
+    assert visitor.source_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -96,8 +97,8 @@ def test_sanity_select_into(target, sources, sql):
     visitor = SelectIntoVisitor()
     node.accept(visitor)
 
-    assert visitor.target == target
-    assert visitor.sources == sources
+    assert visitor.target_table == target
+    assert visitor.source_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -115,4 +116,26 @@ def test_copy(target, query):
     visitor = CopyFromVisitor()
     node.accept(visitor)
 
-    assert visitor.target == target
+    assert visitor.target_table == target
+
+
+def test_insert():
+    query = "INSERT INTO page_lookup_nonredirect SELECT page.page_id, page.page_latest FROM page"
+    parsed = parse_single(query)
+    visitor = SelectSourceVisitor()
+    parsed.accept(visitor)
+    assert len(visitor.target_columns) == 0
+    assert visitor.target_table == (None, "page_lookup_nonredirect")
+    assert len(visitor.source_columns) == 2
+    assert visitor.source_tables == [(None, "page")]
+
+
+def test_insert_cols():
+    query = "INSERT INTO page_lookup_nonredirect(page_id, latest) SELECT page.page_id, page.page_latest FROM page"
+    parsed = parse_single(query)
+    visitor = SelectSourceVisitor()
+    parsed.accept(visitor)
+    assert len(visitor.target_columns) == 2
+    assert visitor.target_table == (None, "page_lookup_nonredirect")
+    assert len(visitor.source_columns) == 2
+    assert visitor.source_tables == [(None, "page")]

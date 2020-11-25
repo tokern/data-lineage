@@ -6,13 +6,18 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 from dash.exceptions import PreventUpdate
 
+from data_lineage.log_mixin import LogMixin
 
-class Server:
+
+class Server(LogMixin):
     def __init__(self, port, graph):
         self.port = port
         self.external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
         self.app = dash.Dash(__name__, external_stylesheets=self.external_stylesheets)
         self.graph = graph
+        from networkx import nodes
+
+        print(nodes(graph.graph))
 
         self.app.title = "Tokern Lineage Explorer"
         self.app.layout = html.Div(
@@ -36,12 +41,14 @@ class Server:
         )(self.update_figure)
 
     def update_figure(self, table):
-        if self.graph.graph.has_node((None, table)):
-            logging.info("'{}' found in graph".format(table))
-            sub_graph = self.graph.sub_graph((None, table))
+        logging.info(table)
+        fqdn = tuple(table.split("."))
+        if self.graph.has_node(fqdn):
+            print("'{}' found in graph".format(table))
+            sub_graph = self.graph.sub_graphs(fqdn)
             return sub_graph.fig()
         else:
-            logging.info("'{}' NOT found in graph".format(table))
+            print("'{}' NOT found in graph".format(table))
             raise PreventUpdate
 
     def run_server(self):

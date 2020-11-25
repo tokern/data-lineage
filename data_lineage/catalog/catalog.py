@@ -5,9 +5,10 @@ from data_lineage.log_mixin import LogMixin
 
 
 class NamedObject(ABC, LogMixin):
-    def __init__(self, name):
+    def __init__(self, name, parent=None):
         self._oid = uuid.uuid1().int
         self._name = name
+        self._parent = parent
 
     @property
     def oid(self):
@@ -17,16 +18,25 @@ class NamedObject(ABC, LogMixin):
     def name(self):
         return self._name
 
+    @property
+    def fqdn(self):
+        if self._parent is None:
+            return (self._name,)
+        else:
+            fq = list(self._parent.fqdn)
+            fq.append(self._name)
+            return tuple(fq)
+
 
 class Namespace(NamedObject):
-    def __init__(self, name):
-        super(Namespace, self).__init__(name)
+    def __init__(self, name, parent):
+        super(Namespace, self).__init__(name, parent)
         self._children = []
 
 
 class Database(Namespace):
     def __init__(self, name, schemata):
-        super(Database, self).__init__(name)
+        super(Database, self).__init__(name, None)
         self._oid_object_map = {}
 
         for schema in schemata:
@@ -46,7 +56,8 @@ class Database(Namespace):
     def get_object(self, oid):
         return self._oid_object_map[oid]
 
-    def get_table_oid(self, schema, table):
+    def get_table(self, fqdn):
+        schema, table = fqdn
         if schema is None:
             schema = "default"
 
@@ -54,11 +65,12 @@ class Database(Namespace):
             if s.name == schema:
                 for t in s.tables:
                     if t.name == table:
-                        return t.oid
+                        return t
 
         return None
 
-    def get_column_oid(self, schema, table, column):
+    def get_column(self, fqdn):
+        schema, table, column = fqdn
         if schema is None:
             schema = "default"
 
@@ -68,9 +80,23 @@ class Database(Namespace):
                     if t.name == table:
                         for c in t.columns:
                             if c.name == column:
-                                return c.oid
+                                return c
 
         return None
+
+    def get_table_oid(self, schema, table):
+        table = self.get_table(schema, table)
+        if table is not None:
+            return table.oid
+        else:
+            return None
+
+    def get_column_oid(self, schema, table):
+        column = self.get_column(schema, table)
+        if column is not None:
+            return column.oid
+        else:
+            return None
 
     @staticmethod
     def get_database(source):
@@ -79,10 +105,10 @@ class Database(Namespace):
 
 class Schema(Namespace):
     def __init__(self, name, tables):
-        super(Schema, self).__init__(name)
+        super(Schema, self).__init__(name, None)
 
         for table in tables:
-            self._children.append(Table(**table))
+            self._children.append(Table(parent=self, **table))
 
     @property
     def tables(self):
@@ -90,11 +116,11 @@ class Schema(Namespace):
 
 
 class Table(Namespace):
-    def __init__(self, name, columns):
-        super(Table, self).__init__(name)
+    def __init__(self, name, columns, parent):
+        super(Table, self).__init__(name, parent)
 
         for column in columns:
-            self._children.append(Column(**column))
+            self._children.append(Column(parent=self, **column))
 
     @property
     def columns(self):
@@ -102,8 +128,8 @@ class Table(Namespace):
 
 
 class Column(NamedObject):
-    def __init__(self, name, type):
-        super(Column, self).__init__(name)
+    def __init__(self, parent, name, type):
+        super(Column, self).__init__(name, parent)
         self._type = type
 
     @property

@@ -1,5 +1,5 @@
 from data_lineage.catalog.query import Query
-from data_lineage.graph.graph import Graph
+from data_lineage.graph.graph import ColumnGraph, Graph
 from data_lineage.parser.parser import parse as parse_single
 from data_lineage.visitors.dml_visitor import (
     CopyFromVisitor,
@@ -26,21 +26,29 @@ def get_dml_queries(parsed):
 
         for visitor in [select_source_visitor, select_into_visitor, copy_from_visitor]:
             node.accept(visitor)
-            if len(visitor.sources) > 0 and visitor.target is not None:
+            if len(visitor.source_tables) > 0 and visitor.target_table is not None:
                 queries.append(visitor)
                 break
 
     return queries
 
 
-def create_graph(dml_queries):
-    graph = Graph()
+def create_graph(dml_queries, columnar=False):
+    if columnar:
+        graph = ColumnGraph()
+    else:
+        graph = Graph()
+
     graph.create_graph(dml_queries)
 
     return graph
 
 
-def get_graph(source):
-    parsed_queries = parse(source)
+def get_graph(queries, catalog=None, columnar=False):
+    parsed_queries = parse(queries)
     dml_queries = get_dml_queries(parsed_queries)
-    return create_graph(dml_queries)
+
+    if catalog is not None:
+        [query.bind(catalog) for query in dml_queries]
+
+    return create_graph(dml_queries, columnar)
