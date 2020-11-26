@@ -31,7 +31,6 @@ class Namespace(NamedObject):
 class Database(Namespace):
     def __init__(self, name, schemata):
         super(Database, self).__init__(name, None)
-        self._oid_object_map = {}
 
         for schema in schemata:
             self._children.append(Schema(**schema))
@@ -39,9 +38,6 @@ class Database(Namespace):
     @property
     def schemata(self):
         return self._children
-
-    def get_object(self, oid):
-        return self._oid_object_map[oid]
 
     def get_table(self, fqdn):
         schema, table = fqdn
