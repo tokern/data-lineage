@@ -5,3 +5,7 @@ class Query:
     @property
     def sql(self):
         return self._sql
+
+    @staticmethod
+    def get_queries(source):
+        return [Query(q) for q in source.read()]

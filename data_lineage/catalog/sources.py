@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
 
-from data_lineage.catalog.query import Query
-
 
 class Source(ABC):
     @abstractmethod
-    def get_queries(self):
+    def read(self):
         pass
 
 
@@ -15,14 +13,12 @@ class FileSource(Source):
         self.path = path
         self.queries = None
 
-    def _read(self):
+    @property
+    def name(self):
+        return self.path
+
+    def read(self):
         import json
 
         with open(self.path, "r") as file:
             return json.load(file)
-
-    def get_queries(self):
-        if self.queries is None:
-            self.queries = [Query(q) for q in self._read()]
-
-        return self.queries

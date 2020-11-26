@@ -91,3 +91,10 @@ class Visitor:
 
     def visit_range_subselect(self, node):
         self.visit(node.subquery)
+        self.visit(node.alias)
+
+    def visit_res_target(self, node):
+        self.visit(node.val)
+
+    def visit_column_ref(self, node):
+        self.visit(node.fields)

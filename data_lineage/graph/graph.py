@@ -1,3 +1,5 @@
+from collections import deque
+
 import networkx as nx
 
 
@@ -16,14 +18,51 @@ class Graph:
 
     def create_graph(self, queries):
         for query in queries:
-            if query.target not in self._graph:
-                self._graph.add_node(query.target)
+            if query.target_table not in self._graph:
+                self._graph.add_node(query.target_table)
 
-            for node in query.sources:
+            for node in query.source_tables:
                 if node not in self._graph:
                     self._graph.add_node(node)
 
-                self._graph.add_edge(node, query.target)
+                self._graph.add_edge(node, query.target_table)
+
+    def has_node(self, table):
+        return (
+            len(
+                [
+                    tup
+                    for tup in self._graph.nodes
+                    if all(x == y for x, y in zip(tup, table))
+                ]
+            )
+            > 0
+        )
+
+    def sub_graphs(self, table):
+        column_dg = nx.DiGraph()
+
+        remaining_nodes = [
+            tup for tup in self._graph.nodes if all(x == y for x, y in zip(tup, table))
+        ]
+
+        processed_nodes = set()
+
+        while len(remaining_nodes) > 0:
+            t = remaining_nodes.pop()
+            if t not in processed_nodes:
+                column_dg.add_node(t)
+            pred = self._graph.predecessors(t)
+            for n in pred:
+                if n not in processed_nodes:
+                    column_dg.add_node(n)
+                    remaining_nodes.append(n)
+                    processed_nodes.add(n)
+                column_dg.add_edge(n, t)
+
+        sub_graph = Graph(name="Data Lineage for {}".format(table))
+        sub_graph.graph = column_dg
+        return sub_graph
 
     def sub_graph(self, table):
         tableDG = nx.DiGraph()
@@ -50,22 +89,22 @@ class Graph:
     def _phases(self):
         remaining_nodes = {}
         for node in self._graph.nodes:
-            remaining_nodes[node] = self._graph.in_degree(node)
+            remaining_nodes[node] = self._graph.out_degree(node)
 
-        phases = []
+        phases = deque()
         current_phase = []
 
         while remaining_nodes:
-            for node, in_degree in remaining_nodes.items():
-                if in_degree == 0:
+            for node, out_degree in remaining_nodes.items():
+                if out_degree == 0:
                     current_phase.append(node)
 
             for node in current_phase:
                 del remaining_nodes[node]
-                for successor in self._graph.successors(node):
-                    remaining_nodes[successor] -= 1
+                for predecessor in self._graph.predecessors(node):
+                    remaining_nodes[predecessor] -= 1
 
-            phases.append(current_phase)
+            phases.appendleft(current_phase)
             current_phase = []
 
         return phases
@@ -154,3 +193,18 @@ class Graph:
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             ),
         )
+
+
+class ColumnGraph(Graph):
+    def create_graph(self, queries):
+        for query in queries:
+            for column in query.target_columns:
+                if column not in self._graph:
+                    self._graph.add_node(column)
+
+            for column in query.source_columns:
+                if column not in self._graph:
+                    self._graph.add_node(column)
+
+            for source, target in zip(query.source_columns, query.target_columns):
+                self._graph.add_edge(source, target)
