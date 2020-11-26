@@ -279,15 +279,11 @@ def test_phases(catalog, queries):
     graph = get_graph(queries, catalog)
     phases = graph._phases()
 
-    assert phases == [
-        [("default", "page"), ("default", "redirect"), ("default", "pagecounts")],
-        [
-            ("default", "page_lookup_nonredirect"),
-            ("default", "page_lookup_redirect"),
-            ("default", "filtered_pagecounts"),
-        ],
-        [("default", "page_lookup")],
-        [("default", "normalized_pagecounts")],
+    assert list(phases) == [
+        [("default", "page"), ("default", "redirect")],
+        [("default", "page_lookup_redirect"), ("default", "pagecounts")],
+        [("default", "page_lookup"), ("default", "filtered_pagecounts")],
+        [("default", "page_lookup_nonredirect"), ("default", "normalized_pagecounts")],
     ]
 
 
@@ -296,12 +292,12 @@ def test_node_positions(queries, catalog):
     graph._set_node_positions(graph._phases())
 
     assert graph.graph.nodes[("default", "page")]["pos"] == [0, 0]
-    assert graph.graph.nodes[("default", "pagecounts")]["pos"] == [0, 1]
-    assert graph.graph.nodes[("default", "redirect")]["pos"] == [0, 2]
-    assert graph.graph.nodes[("default", "filtered_pagecounts")]["pos"] == [1, 0]
-    assert graph.graph.nodes[("default", "page_lookup_nonredirect")]["pos"] == [1, 1]
-    assert graph.graph.nodes[("default", "page_lookup_redirect")]["pos"] == [1, 2]
-    assert graph.graph.nodes[("default", "page_lookup")]["pos"] == [2, 0]
+    assert graph.graph.nodes[("default", "pagecounts")]["pos"] == [1, 1]
+    assert graph.graph.nodes[("default", "redirect")]["pos"] == [0, 1]
+    assert graph.graph.nodes[("default", "filtered_pagecounts")]["pos"] == [2, 0]
+    assert graph.graph.nodes[("default", "page_lookup_nonredirect")]["pos"] == [3, 1]
+    assert graph.graph.nodes[("default", "page_lookup_redirect")]["pos"] == [1, 0]
+    assert graph.graph.nodes[("default", "page_lookup")]["pos"] == [2, 1]
     assert graph.graph.nodes[("default", "normalized_pagecounts")]["pos"] == [3, 0]
 
 
