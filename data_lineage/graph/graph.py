@@ -1,3 +1,5 @@
+from collections import deque
+
 import networkx as nx
 
 
@@ -87,22 +89,22 @@ class Graph:
     def _phases(self):
         remaining_nodes = {}
         for node in self._graph.nodes:
-            remaining_nodes[node] = self._graph.in_degree(node)
+            remaining_nodes[node] = self._graph.out_degree(node)
 
-        phases = []
+        phases = deque()
         current_phase = []
 
         while remaining_nodes:
-            for node, in_degree in remaining_nodes.items():
-                if in_degree == 0:
+            for node, out_degree in remaining_nodes.items():
+                if out_degree == 0:
                     current_phase.append(node)
 
             for node in current_phase:
                 del remaining_nodes[node]
-                for successor in self._graph.successors(node):
-                    remaining_nodes[successor] -= 1
+                for predecessor in self._graph.predecessors(node):
+                    remaining_nodes[predecessor] -= 1
 
-            phases.append(current_phase)
+            phases.appendleft(current_phase)
             current_phase = []
 
         return phases

@@ -303,3 +303,44 @@ def test_node_positions(queries, catalog):
     assert graph.graph.nodes[("default", "page_lookup_redirect")]["pos"] == [1, 2]
     assert graph.graph.nodes[("default", "page_lookup")]["pos"] == [2, 0]
     assert graph.graph.nodes[("default", "normalized_pagecounts")]["pos"] == [3, 0]
+
+
+def test_sub_graph_node_positions(queries, catalog):
+    graph = get_graph(queries, catalog, True)
+    sub_graph = graph.sub_graphs(("default", "normalized_pagecounts"))
+    sub_graph._set_node_positions(sub_graph._phases())
+
+    assert sub_graph.graph.nodes[("default", "normalized_pagecounts", "views")][
+        "pos"
+    ] == [3, 4]
+    assert sub_graph.graph.nodes[("default", "normalized_pagecounts", "page_url")][
+        "pos"
+    ] == [3, 3]
+    assert sub_graph.graph.nodes[("default", "normalized_pagecounts", "page_title")][
+        "pos"
+    ] == [3, 2]
+    assert sub_graph.graph.nodes[("default", "normalized_pagecounts", "page_id")][
+        "pos"
+    ] == [3, 1]
+    assert sub_graph.graph.nodes[("default", "normalized_pagecounts", "bytes_sent")][
+        "pos"
+    ] == [3, 0]
+    assert sub_graph.graph.nodes[("default", "page_lookup", "true_title")]["pos"] == [
+        2,
+        3,
+    ]
+    assert sub_graph.graph.nodes[("default", "page_lookup", "page_id")]["pos"] == [2, 2]
+    assert sub_graph.graph.nodes[("default", "filtered_pagecounts", "views")][
+        "pos"
+    ] == [2, 1]
+    assert sub_graph.graph.nodes[("default", "filtered_pagecounts", "bytes_sent")][
+        "pos"
+    ] == [2, 0]
+    assert sub_graph.graph.nodes[("default", "page_lookup_redirect", "true_title")][
+        "pos"
+    ] == [1, 1]
+    assert sub_graph.graph.nodes[("default", "page_lookup_redirect", "page_id")][
+        "pos"
+    ] == [1, 0]
+    assert sub_graph.graph.nodes[("default", "page", "page_title")]["pos"] == [0, 1]
+    assert sub_graph.graph.nodes[("default", "page", "page_id")]["pos"] == [0, 0]
