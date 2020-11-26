@@ -1,4 +1,3 @@
-import uuid
 from abc import ABC
 
 from data_lineage.log_mixin import LogMixin
@@ -6,13 +5,8 @@ from data_lineage.log_mixin import LogMixin
 
 class NamedObject(ABC, LogMixin):
     def __init__(self, name, parent=None):
-        self._oid = uuid.uuid1().int
         self._name = name
         self._parent = parent
-
-    @property
-    def oid(self):
-        return self._oid
 
     @property
     def name(self):
@@ -41,13 +35,6 @@ class Database(Namespace):
 
         for schema in schemata:
             self._children.append(Schema(**schema))
-
-        for s in self.schemata:
-            for t in s.tables:
-                for c in t.columns:
-                    self._oid_object_map[c.oid] = c
-                self._oid_object_map[t.oid] = t
-            self._oid_object_map[s.oid] = s
 
     @property
     def schemata(self):
@@ -83,20 +70,6 @@ class Database(Namespace):
                                 return c
 
         return None
-
-    def get_table_oid(self, schema, table):
-        table = self.get_table(schema, table)
-        if table is not None:
-            return table.oid
-        else:
-            return None
-
-    def get_column_oid(self, schema, table):
-        column = self.get_column(schema, table)
-        if column is not None:
-            return column.oid
-        else:
-            return None
 
     @staticmethod
     def get_database(source):

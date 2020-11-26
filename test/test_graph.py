@@ -1,22 +1,32 @@
+import pytest
 from networkx import edges, nodes
 
 from data_lineage.catalog.catalog import Database
 from data_lineage.catalog.sources import FileSource
-from data_lineage.data_lineage import create_graph, get_dml_queries, get_graph, parse
+from data_lineage.data_lineage import get_graph
 from data_lineage.graph.graph import ColumnGraph
 from data_lineage.parser.parser import parse as parse_single
 from data_lineage.visitors.dml_visitor import SelectSourceVisitor
 
 
-def test_no_insert_column_graph():
+@pytest.fixture
+def catalog():
+    source = FileSource("test/catalog.json")
+    return Database(source.name, **source.read())
+
+
+@pytest.fixture
+def queries():
+    return FileSource("test/queries.json")
+
+
+def test_no_insert_column_graph(catalog):
     query = """
         INSERT INTO page_lookup_nonredirect
         SELECT page.page_id as redirect_id, page.page_title as redirect_title,
             page.page_title true_title, page.page_id, page.page_latest
         FROM page
     """
-    source = FileSource("test/catalog.json")
-    catalog = Database(source.name, **source.read())
 
     parsed = parse_single(query)
     visitor = SelectSourceVisitor()
@@ -31,81 +41,89 @@ def test_no_insert_column_graph():
         ("default", "page_lookup_nonredirect", "true_title"),
         ("default", "page_lookup_nonredirect", "page_id"),
         ("default", "page_lookup_nonredirect", "page_version"),
-        ("page", "page_id"),
-        ("page", "page_title"),
-        ("page", "page_latest"),
+        ("default", "page", "page_id"),
+        ("default", "page", "page_title"),
+        ("default", "page", "page_latest"),
     ]
     assert list(edges(graph.graph)) == [
-        (("page", "page_id"), ("default", "page_lookup_nonredirect", "redirect_id")),
-        (("page", "page_id"), ("default", "page_lookup_nonredirect", "page_id")),
         (
-            ("page", "page_title"),
+            ("default", "page", "page_id"),
+            ("default", "page_lookup_nonredirect", "redirect_id"),
+        ),
+        (
+            ("default", "page", "page_id"),
+            ("default", "page_lookup_nonredirect", "page_id"),
+        ),
+        (
+            ("default", "page", "page_title"),
             ("default", "page_lookup_nonredirect", "redirect_title"),
         ),
-        (("page", "page_title"), ("default", "page_lookup_nonredirect", "true_title")),
         (
-            ("page", "page_latest"),
+            ("default", "page", "page_title"),
+            ("default", "page_lookup_nonredirect", "true_title"),
+        ),
+        (
+            ("default", "page", "page_latest"),
             ("default", "page_lookup_nonredirect", "page_version"),
         ),
     ]
 
 
-def test_basic_column_graph():
-    query = "INSERT INTO page_lookup_nonredirect(page_id, latest) SELECT page.page_id, page.page_latest FROM page"
+def test_basic_column_graph(catalog):
+    query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse_single(query)
     visitor = SelectSourceVisitor()
     parsed.accept(visitor)
+    visitor.bind(catalog)
 
     graph = ColumnGraph()
     graph.create_graph([visitor])
     assert list(nodes(graph.graph)) == [
-        "page_id",
-        "latest",
-        ("page", "page_id"),
-        ("page", "page_latest"),
+        ("default", "page_lookup_nonredirect", "page_id"),
+        ("default", "page_lookup_nonredirect", "page_version"),
+        ("default", "page", "page_id"),
+        ("default", "page", "page_latest"),
     ]
+
     assert list(edges(graph.graph)) == [
-        (("page", "page_id"), "page_id"),
-        (("page", "page_latest"), "latest"),
+        (
+            ("default", "page", "page_id"),
+            ("default", "page_lookup_nonredirect", "page_id"),
+        ),
+        (
+            ("default", "page", "page_latest"),
+            ("default", "page_lookup_nonredirect", "page_version"),
+        ),
     ]
 
 
-def test_graph():
-    source = FileSource("test/queries.json")
-    parsed = parse(source)
-
-    dml = get_dml_queries(parsed)
-    graph = create_graph(dml)
+def test_graph(catalog, queries):
+    graph = get_graph(queries, catalog)
 
     assert list(nodes(graph.graph)) == [
-        (None, "page_lookup_nonredirect"),
-        (None, "page"),
-        (None, "redirect"),
-        (None, "page_lookup_redirect"),
-        (None, "page_lookup"),
-        (None, "filtered_pagecounts"),
-        (None, "pagecounts"),
-        (None, "normalized_pagecounts"),
+        ("default", "page_lookup_nonredirect"),
+        ("default", "page"),
+        ("default", "redirect"),
+        ("default", "page_lookup_redirect"),
+        ("default", "page_lookup"),
+        ("default", "filtered_pagecounts"),
+        ("default", "pagecounts"),
+        ("default", "normalized_pagecounts"),
     ]
 
     assert list(edges(graph.graph)) == [
-        ((None, "page_lookup_nonredirect"), (None, "page_lookup")),
-        ((None, "page"), (None, "page_lookup_nonredirect")),
-        ((None, "page"), (None, "page_lookup_redirect")),
-        ((None, "redirect"), (None, "page_lookup_nonredirect")),
-        ((None, "redirect"), (None, "page_lookup_redirect")),
-        ((None, "page_lookup_redirect"), (None, "page_lookup")),
-        ((None, "page_lookup"), (None, "normalized_pagecounts")),
-        ((None, "filtered_pagecounts"), (None, "normalized_pagecounts")),
-        ((None, "pagecounts"), (None, "filtered_pagecounts")),
+        (("default", "page"), ("default", "page_lookup_nonredirect")),
+        (("default", "page"), ("default", "page_lookup_redirect")),
+        (("default", "redirect"), ("default", "page_lookup_nonredirect")),
+        (("default", "redirect"), ("default", "page_lookup_redirect")),
+        (("default", "page_lookup_redirect"), ("default", "page_lookup")),
+        (("default", "page_lookup"), ("default", "normalized_pagecounts")),
+        (("default", "filtered_pagecounts"), ("default", "normalized_pagecounts")),
+        (("default", "pagecounts"), ("default", "filtered_pagecounts")),
     ]
 
 
-def test_column_graph():
-    queries = FileSource("test/queries.json")
-    catalog_source = FileSource("test/catalog.json")
-    catalog = Database(catalog_source.name, **catalog_source.read())
-
+def test_column_graph(catalog, queries):
     graph = get_graph(queries, catalog, True)
 
     assert list(nodes(graph.graph)) == [
@@ -218,11 +236,7 @@ def test_column_graph():
     ]
 
 
-def test_column_sub_graph():
-    queries = FileSource("test/queries.json")
-    catalog_source = FileSource("test/catalog.json")
-    catalog = Database(catalog_source.name, **catalog_source.read())
-
+def test_column_sub_graph(catalog, queries):
     graph = get_graph(queries, catalog, True)
     sub_graph = graph.sub_graphs(("default", "page_lookup_nonredirect"))
 
@@ -261,35 +275,31 @@ def test_column_sub_graph():
     ]
 
 
-def test_phases():
-    source = FileSource("test/queries.json")
-    parsed = parse(source)
-
-    graph = create_graph(get_dml_queries(parsed))
+def test_phases(catalog, queries):
+    graph = get_graph(queries, catalog)
     phases = graph._phases()
 
     assert phases == [
-        [(None, "page"), (None, "redirect"), (None, "pagecounts")],
+        [("default", "page"), ("default", "redirect"), ("default", "pagecounts")],
         [
-            (None, "page_lookup_nonredirect"),
-            (None, "page_lookup_redirect"),
-            (None, "filtered_pagecounts"),
+            ("default", "page_lookup_nonredirect"),
+            ("default", "page_lookup_redirect"),
+            ("default", "filtered_pagecounts"),
         ],
-        [(None, "page_lookup")],
-        [(None, "normalized_pagecounts")],
+        [("default", "page_lookup")],
+        [("default", "normalized_pagecounts")],
     ]
 
 
-def test_node_positions():
-    source = FileSource("test/queries.json")
-    graph = get_graph(source)
+def test_node_positions(queries, catalog):
+    graph = get_graph(queries, catalog)
     graph._set_node_positions(graph._phases())
 
-    assert graph.graph.nodes[(None, "page")]["pos"] == [0, 0]
-    assert graph.graph.nodes[(None, "pagecounts")]["pos"] == [0, 1]
-    assert graph.graph.nodes[(None, "redirect")]["pos"] == [0, 2]
-    assert graph.graph.nodes[(None, "filtered_pagecounts")]["pos"] == [1, 0]
-    assert graph.graph.nodes[(None, "page_lookup_nonredirect")]["pos"] == [1, 1]
-    assert graph.graph.nodes[(None, "page_lookup_redirect")]["pos"] == [1, 2]
-    assert graph.graph.nodes[(None, "page_lookup")]["pos"] == [2, 0]
-    assert graph.graph.nodes[(None, "normalized_pagecounts")]["pos"] == [3, 0]
+    assert graph.graph.nodes[("default", "page")]["pos"] == [0, 0]
+    assert graph.graph.nodes[("default", "pagecounts")]["pos"] == [0, 1]
+    assert graph.graph.nodes[("default", "redirect")]["pos"] == [0, 2]
+    assert graph.graph.nodes[("default", "filtered_pagecounts")]["pos"] == [1, 0]
+    assert graph.graph.nodes[("default", "page_lookup_nonredirect")]["pos"] == [1, 1]
+    assert graph.graph.nodes[("default", "page_lookup_redirect")]["pos"] == [1, 2]
+    assert graph.graph.nodes[("default", "page_lookup")]["pos"] == [2, 0]
+    assert graph.graph.nodes[("default", "normalized_pagecounts")]["pos"] == [3, 0]

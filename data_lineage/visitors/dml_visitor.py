@@ -33,6 +33,28 @@ class DmlVisitor(Visitor):
     def visit_res_target(self, node):
         self._target_columns.append(node.name.value)
 
+    def resolve(self):
+        target_table_visitor = RangeVarVisitor()
+        target_table_visitor.visit(self._target_table)
+
+        self._target_table = target_table_visitor.fqdn
+
+        bound_tables = []
+        for table in self._source_tables:
+            visitor = RangeVarVisitor()
+            visitor.visit(table)
+            bound_tables.append(visitor.fqdn)
+
+        self._source_tables = bound_tables
+
+        bound_cols = []
+        for column in self._source_columns:
+            column_ref_visitor = ColumnRefVisitor()
+            column_ref_visitor.visit(column)
+            bound_cols.append(column_ref_visitor.name[0])
+
+        self._source_columns = bound_cols
+
     def bind(self, catalog):
         target_table_visitor = RangeVarVisitor()
         target_table_visitor.visit(self._target_table)
@@ -45,12 +67,8 @@ class DmlVisitor(Visitor):
         else:
             bound_cols = []
             for column in self._target_columns:
-                column_ref_visitor = ColumnRefVisitor()
-                column_ref_visitor.visit(column)
                 bound = catalog.get_column(
-                    self._target_table[0],
-                    self._target_table[1],
-                    column_ref_visitor.name[0],
+                    (self._target_table[0], self._target_table[1], column)
                 )
                 if bound is None:
                     raise RuntimeError("{} not found in table".format(column))

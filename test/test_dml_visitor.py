@@ -12,22 +12,21 @@ from data_lineage.visitors.dml_visitor import (
 @pytest.mark.parametrize(
     "target, sources, sql",
     [
-        ((None, "c"), [(None, "a")], "insert into c select * from a"),
+        ((None, "c"), [(None, "a")], "insert into c select x,y from a"),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "insert into c select * from a join b on a.id = b.id",
+            "insert into c select x,y from a join b on a.id = b.id",
         ),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "insert into c select * from (select * from a join b on a.id = b.id) x",
+            "insert into c select x,y from a join b on a.id = b.id",
         ),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "insert into c select * from (select * from a as aa join b on "
-            "aa.id = b.id) x",
+            "insert into c select x,y from a as aa join b on " "aa.id = b.id",
         ),
     ],
 )
@@ -35,6 +34,7 @@ def test_sanity_insert(target, sources, sql):
     node = parse(sql)
     insert_visitor = SelectSourceVisitor()
     node.accept(insert_visitor)
+    insert_visitor.resolve()
 
     assert insert_visitor.target_table == target
     assert insert_visitor.source_tables == sources
@@ -43,23 +43,21 @@ def test_sanity_insert(target, sources, sql):
 @pytest.mark.parametrize(
     "target, sources, sql",
     [
-        ((None, "c"), [(None, "a")], "create table c as select * from a"),
+        ((None, "c"), [(None, "a")], "create table c as select x,y from a"),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "create table c as select * from a join b on a.id = b.id",
+            "create table c as select x,y from a join b on a.id = b.id",
         ),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "create table c as select * from (select * from a join b on a.id = b.id)"
-            " x",
+            "create table c as select x,y from a join b on a.id = b.id",
         ),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "create table c as select * from (select * from a as aa join b on "
-            "aa.id = b.id) x",
+            "create table c as select x,y from a as aa join b on aa.id = b.id",
         ),
     ],
 )
@@ -67,7 +65,7 @@ def test_sanity_ctas(target, sources, sql):
     node = parse(sql)
     visitor = SelectSourceVisitor()
     node.accept(visitor)
-
+    visitor.resolve()
     assert visitor.target_table == target
     assert visitor.source_tables == sources
 
@@ -78,17 +76,17 @@ def test_sanity_ctas(target, sources, sql):
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "select * into c from a join b on a.id = b.id",
+            "select x,y into c from a join b on a.id = b.id",
         ),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "select * into c from (select * from a join b on a.id = b.id) x",
+            "select x,y into c from a join b on a.id = b.id",
         ),
         (
             (None, "c"),
             [(None, "a"), (None, "b")],
-            "select * into c from (select * from a as aa join b on aa.id = b.id) x",
+            "select x,y into c from a as aa join b on aa.id = b.id",
         ),
     ],
 )
@@ -96,6 +94,7 @@ def test_sanity_select_into(target, sources, sql):
     node = parse(sql)
     visitor = SelectIntoVisitor()
     node.accept(visitor)
+    visitor.resolve()
 
     assert visitor.target_table == target
     assert visitor.source_tables == sources
@@ -115,6 +114,7 @@ def test_copy(target, query):
     node = parse(query)
     visitor = CopyFromVisitor()
     node.accept(visitor)
+    visitor.resolve()
 
     assert visitor.target_table == target
 
@@ -124,6 +124,8 @@ def test_insert():
     parsed = parse_single(query)
     visitor = SelectSourceVisitor()
     parsed.accept(visitor)
+    visitor.resolve()
+
     assert len(visitor.target_columns) == 0
     assert visitor.target_table == (None, "page_lookup_nonredirect")
     assert len(visitor.source_columns) == 2
@@ -135,6 +137,8 @@ def test_insert_cols():
     parsed = parse_single(query)
     visitor = SelectSourceVisitor()
     parsed.accept(visitor)
+    visitor.resolve()
+
     assert len(visitor.target_columns) == 2
     assert visitor.target_table == (None, "page_lookup_nonredirect")
     assert len(visitor.source_columns) == 2
