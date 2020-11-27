@@ -1,3 +1,5 @@
+import logging
+
 import click
 import yaml
 
@@ -11,7 +13,7 @@ from data_lineage.server import Server
 
 @click.group()
 @click.version_option(__version__)
-@click.option("-l", "--log-level", help="Logging Level", default="WARNING")
+@click.option("-l", "--log-level", help="Logging Level", default="INFO")
 @click.option(
     "-c",
     "--config",
@@ -21,6 +23,7 @@ from data_lineage.server import Server
 )
 @click.pass_context
 def main(ctx, log_level, config):
+    logging.basicConfig(level=getattr(logging, log_level.upper()))
     ctx.obj = config
 
 
@@ -56,6 +59,8 @@ config_template = """
 def init(obj):
     with open(obj, "w") as f:
         f.write(config_template)
+    logger = LogMixin()
+    logger.logger.info("Created a configuration file at {}".format(obj))
 
 
 @main.command("runserver", short_help="Start the data lineage server")
@@ -66,6 +71,7 @@ def runserver(obj, port):
     with open(obj, "r") as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
 
+    logger.logger.debug("Load config file: {}".format(obj))
     queries = None
     catalog = None
     logger.logger.debug(config)
