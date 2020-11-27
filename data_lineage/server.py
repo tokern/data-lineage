@@ -17,7 +17,7 @@ class Server(LogMixin):
         self.graph = graph
         from networkx import nodes
 
-        print(nodes(graph.graph))
+        self.logger.debug(nodes(graph.graph))
 
         self.app.title = "Tokern Lineage Explorer"
         self.app.layout = html.Div(
@@ -44,11 +44,11 @@ class Server(LogMixin):
         logging.info(table)
         fqdn = tuple(table.split("."))
         if self.graph.has_node(fqdn):
-            print("'{}' found in graph".format(table))
+            self.logger.debug("'{}' found in graph".format(table))
             sub_graph = self.graph.sub_graphs(fqdn)
             return sub_graph.fig()
         else:
-            print("'{}' NOT found in graph".format(table))
+            self.logger.debug("'{}' NOT found in graph".format(table))
             raise PreventUpdate
 
     def run_server(self):

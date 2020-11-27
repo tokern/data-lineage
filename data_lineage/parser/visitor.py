@@ -27,13 +27,13 @@ class Visitor:
 
     def visit_node(self, node):
         method_name = "visit_{}".format(inflection.underscore(node.node_tag))
-        logging.debug("Method name: {}", method_name)
+        logging.debug("Method name: {}".format(method_name))
         try:
             method = getattr(self, method_name)
             if callable(method):
                 method(node)
         except AttributeError:
-            logging.debug("{} not found in class {}", method_name, node.node_tag)
+            logging.debug("{} not found in class {}".format(method_name, node.node_tag))
 
     def visit_scalar(self, obj):
         pass
