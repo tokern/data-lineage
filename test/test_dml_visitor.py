@@ -1,3 +1,5 @@
+# type: ignore
+
 import pytest
 
 from data_lineage.parser.parser import parse

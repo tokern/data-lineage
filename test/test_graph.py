@@ -1,3 +1,5 @@
+# type: ignore
+
 import pytest
 from networkx import edges, nodes
 

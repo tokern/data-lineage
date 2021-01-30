@@ -15,6 +15,15 @@ repos:
         entry: pipenv run black
         types: [python]
 
+      - id: mypy
+        name: mypy
+        stages: [commit]
+        language: system
+        entry: pipenv run mypy
+        types: [python]
+        pass_filenames: false
+
+ 
       - id: flake8
         name: flake8
         stages: [commit]

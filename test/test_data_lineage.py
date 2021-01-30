@@ -1,3 +1,5 @@
+# type: ignore
+
 from data_lineage.catalog.sources import FileSource
 from data_lineage.data_lineage import get_dml_queries, parse
 

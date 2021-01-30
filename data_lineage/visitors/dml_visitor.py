@@ -1,3 +1,5 @@
+# type: ignore
+
 from data_lineage.parser.visitor import Visitor
 from data_lineage.visitors.column_ref_visitor import ColumnRefVisitor
 from data_lineage.visitors.range_var_visitor import RangeVarVisitor

@@ -1,3 +1,5 @@
+# type: ignore
+
 from data_lineage.catalog.query import Query
 from data_lineage.graph.graph import ColumnGraph, Graph
 from data_lineage.parser.parser import parse as parse_single
