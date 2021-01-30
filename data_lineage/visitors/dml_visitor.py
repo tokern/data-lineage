@@ -1,5 +1,7 @@
 # type: ignore
 
+from dbcat.catalog.orm import Catalog
+
 from data_lineage.parser.visitor import Visitor
 from data_lineage.visitors.column_ref_visitor import ColumnRefVisitor
 from data_lineage.visitors.range_var_visitor import RangeVarVisitor
@@ -57,24 +59,38 @@ class DmlVisitor(Visitor):
 
         self._source_columns = bound_cols
 
-    def bind(self, catalog):
+    def bind(self, catalog: Catalog):
         target_table_visitor = RangeVarVisitor()
         target_table_visitor.visit(self._target_table)
 
-        table = catalog.get_table(target_table_visitor.fqdn)
-        self._target_table = table.fqdn
+        self.logger.debug(
+            "Searching for: {}".format(target_table_visitor.search_string)
+        )
+        candidate_tables = catalog.search_table(**target_table_visitor.search_string)
+        if len(candidate_tables) == 0:
+            raise RuntimeError("'{}' table not found".format(target_table_visitor.fqdn))
+        elif len(candidate_tables) > 1:
+            raise RuntimeError("Ambiguous table name. Multiple matches found")
+
+        self._target_table = candidate_tables[0]
+        self.logger.debug("Bound target table: {}".format(candidate_tables[0]))
 
         if len(self._target_columns) == 0:
-            self._target_columns = [column.fqdn for column in table.columns]
+            self._target_columns = catalog.get_columns_for_table(candidate_tables[0])
+            self.logger.debug("Bound all columns in {}".format(self._target_table))
         else:
             bound_cols = []
             for column in self._target_columns:
-                bound = catalog.get_column(
-                    (self._target_table[0], self._target_table[1], column)
+                bound = catalog.get_columns_for_table(
+                    candidate_tables[0], column_names=[column]
                 )
-                if bound is None:
+                if len(bound) == 0:
                     raise RuntimeError("{} not found in table".format(column))
-                bound_cols.append(bound.fqdn)
+                elif len(bound) > 1:
+                    raise RuntimeError("Ambiguous column name. Multiple matches found")
+
+                self.logger.debug("Bound target column: {}".format(bound[0]))
+                bound_cols.append(bound[0])
 
             self._target_columns = bound_cols
 
@@ -84,8 +100,18 @@ class DmlVisitor(Visitor):
             visitor = RangeVarVisitor()
             visitor.visit(table)
             if visitor.alias is not None:
-                alias_map[visitor.alias] = visitor.fqdn
-            bound_tables.append(catalog.get_table(visitor.fqdn).fqdn)
+                alias_map[visitor.alias] = visitor.search_string
+
+            self.logger.debug("Searching for: {}".format(visitor.search_string))
+
+            candidate_tables = catalog.search_table(**visitor.search_string)
+            if len(candidate_tables) == 0:
+                raise RuntimeError("'{}' table not found".format(visitor.fqdn))
+            elif len(candidate_tables) > 1:
+                raise RuntimeError("Ambiguous table name. Multiple matches found")
+
+            self.logger.debug("Bound source table: {}".format(candidate_tables[0]))
+            bound_tables.append(candidate_tables[0])
 
         self._source_tables = bound_tables
         bound_cols = []
@@ -93,15 +119,27 @@ class DmlVisitor(Visitor):
             column_ref_visitor = ColumnRefVisitor()
             column_ref_visitor.visit(column)
             if column_ref_visitor.name[0] in alias_map:
-                table = catalog.get_table(alias_map[column_ref_visitor.name[0]])
+                table_name = alias_map[column_ref_visitor.name[0]]
             else:
-                table = catalog.get_table((None, column_ref_visitor.name[0]))
-            fqdn = list(table.fqdn)
-            fqdn.append(column_ref_visitor.name[1])
-            bound = catalog.get_column(tuple(fqdn))
-            if bound is None:
+                table_name = {"table_like": column_ref_visitor.name[0]}
+
+            self.logger.debug("Searching for: {}".format(table_name))
+            candidate_tables = catalog.search_table(**table_name)
+            if len(candidate_tables) == 0:
+                raise RuntimeError("'{}' table not found".format(visitor.fqdn))
+            elif len(candidate_tables) > 1:
+                raise RuntimeError("Ambiguous table name. Multiple matches found")
+
+            bound = catalog.get_columns_for_table(
+                table=candidate_tables[0], column_names=[column_ref_visitor.name[1]]
+            )
+            if len(bound) == 0:
                 raise RuntimeError("{} not found in table".format(column))
-            bound_cols.append(bound.fqdn)
+            elif len(bound) > 1:
+                raise RuntimeError("Ambiguous column name. Multiple matches found")
+
+            self.logger.debug("Bound source column: {}".format(bound[0]))
+            bound_cols.append(bound[0])
 
         self._source_columns = bound_cols
 

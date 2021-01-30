@@ -13,7 +13,8 @@ networkx = "*"
 plotly = "*"
 dash = "*"
 click = "*"
-pyyaml = "*"
+PyYAML = "*"
+dbcat = "==0.3.0"
 
 [dev-packages]
 black = "==19.10b0"

@@ -17,6 +17,10 @@ class RangeVarVisitor(Visitor):
     def fqdn(self):
         return self._schema_name, self._name
 
+    @property
+    def search_string(self):
+        return {"schema_like": self._schema_name, "table_like": self._name}
+
     def visit_alias(self, node):
         self._alias = node.aliasname.value
 

@@ -4,6 +4,7 @@ import logging
 
 import inflection
 
+from data_lineage.log_mixin import LogMixin
 from data_lineage.parser.node import (
     AcceptingList,
     AcceptingNode,
@@ -12,7 +13,7 @@ from data_lineage.parser.node import (
 )
 
 
-class Visitor:
+class Visitor(LogMixin):
     def visit(self, obj):
         if obj is None:
             return None
