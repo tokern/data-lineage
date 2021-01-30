@@ -6,7 +6,7 @@ from dbcat.catalog.orm import Catalog, CatDatabase
 from dbcat.scanners.json import File
 
 from data_lineage.catalog import LineageCatalog
-from data_lineage.parser.parser import parse  # type: ignore
+from data_lineage.parser import parse  # type: ignore
 
 
 @pytest.fixture(scope="session")

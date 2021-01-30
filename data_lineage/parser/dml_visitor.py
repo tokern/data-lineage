@@ -2,10 +2,12 @@
 
 from dbcat.catalog.orm import Catalog
 
+from data_lineage.parser.table_visitor import (
+    ColumnRefVisitor,
+    RangeVarVisitor,
+    TableVisitor,
+)
 from data_lineage.parser.visitor import Visitor
-from data_lineage.visitors.column_ref_visitor import ColumnRefVisitor
-from data_lineage.visitors.range_var_visitor import RangeVarVisitor
-from data_lineage.visitors.table_visitor import TableVisitor
 
 
 class DmlVisitor(Visitor):

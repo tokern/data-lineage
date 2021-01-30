@@ -2,9 +2,9 @@
 
 import pytest
 
-from data_lineage.parser.parser import parse
-from data_lineage.parser.parser import parse as parse_single
-from data_lineage.visitors.dml_visitor import (
+from data_lineage.parser import parse
+from data_lineage.parser import parse as parse_single
+from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     SelectIntoVisitor,
     SelectSourceVisitor,

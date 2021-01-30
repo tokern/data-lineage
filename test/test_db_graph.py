@@ -7,8 +7,8 @@ from networkx import edges, nodes
 from data_lineage.catalog import ColumnEdge
 from data_lineage.data_lineage import get_dml_queries
 from data_lineage.graph import DbGraph
-from data_lineage.parser.parser import parse as parse_single  # type: ignore
-from data_lineage.visitors.dml_visitor import SelectSourceVisitor  # type: ignore
+from data_lineage.parser import parse as parse_single  # type: ignore
+from data_lineage.parser.dml_visitor import SelectSourceVisitor  # type: ignore
 
 logging.basicConfig(level=getattr(logging, "DEBUG"))
 

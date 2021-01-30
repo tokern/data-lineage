@@ -1,4 +1,4 @@
-from data_lineage.visitors.dml_visitor import (  # type: ignore
+from data_lineage.parser.dml_visitor import (  # type: ignore
     CopyFromVisitor,
     SelectIntoVisitor,
     SelectSourceVisitor,
