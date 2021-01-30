@@ -5,13 +5,33 @@ import yaml
 from dbcat.catalog.orm import Catalog, CatDatabase
 from dbcat.scanners.json import File
 
-from data_lineage.graph.orm import LineageCatalog
+from data_lineage.catalog import LineageCatalog
+from data_lineage.parser.parser import parse  # type: ignore
 
 
 @pytest.fixture(scope="session")
 def load_catalog():
     scanner = File("test", "test/catalog.json")
     yield scanner.scan()
+
+
+@pytest.fixture(scope="session")
+def load_queries():
+    import json
+
+    with open("test/queries.json", "r") as file:
+        queries = json.load(file)
+
+    yield queries
+
+
+@pytest.fixture(scope="session")
+def parse_queries(load_queries):
+    parsed = []
+    for query in load_queries:
+        parsed.append(parse(query))
+
+    yield parsed
 
 
 postgres_conf = """

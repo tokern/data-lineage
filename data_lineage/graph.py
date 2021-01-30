@@ -2,9 +2,9 @@ from collections import deque
 from typing import Any, Dict, Tuple
 
 import networkx as nx
-from dbcat.catalog.orm import CatColumn
+from dbcat.catalog.orm import CatColumn, CatTable
 
-from data_lineage.graph.orm import LineageCatalog
+from data_lineage.catalog import LineageCatalog
 from data_lineage.log_mixin import LogMixin
 
 
@@ -50,26 +50,34 @@ class Graph(LogMixin):
             > 0
         )
 
-    def sub_graphs(self, table):
+    def sub_graphs(self, table: CatTable):
         column_dg = nx.DiGraph()
 
-        remaining_nodes = [
-            tup for tup in self._graph.nodes if all(x == y for x, y in zip(tup, table))
-        ]
+        remaining_nodes = []
 
+        for node in self._graph.nodes:
+            if node.table == table:
+                remaining_nodes.append(node)
+
+        self.logger.debug(
+            "Searched for {}. Found {} nodes".format(table, len(remaining_nodes))
+        )
         processed_nodes = set()
 
         while len(remaining_nodes) > 0:
             t = remaining_nodes.pop()
             if t not in processed_nodes:
                 column_dg.add_node(t)
+                self.logger.debug("Added Node: {}".format(t))
             pred = self._graph.predecessors(t)
             for n in pred:
                 if n not in processed_nodes:
                     column_dg.add_node(n)
                     remaining_nodes.append(n)
                     processed_nodes.add(n)
+                    self.logger.debug("Processed node {}".format(n))
                 column_dg.add_edge(n, t)
+                self.logger.debug("Added edge {} -> {}".format(n, t))
 
         sub_graph = Graph(name="Data Lineage for {}".format(table))
         sub_graph.graph = column_dg

@@ -6,9 +6,7 @@ import click
 import yaml
 
 from data_lineage import __version__
-from data_lineage.catalog.catalog import Database
-from data_lineage.catalog.sources import FileSource
-from data_lineage.data_lineage import get_graph
+from data_lineage.catalog import LineageCatalog
 from data_lineage.log_mixin import LogMixin
 from data_lineage.server import Server
 
@@ -33,26 +31,58 @@ config_template = """
 # Instructions for configuring Tokern Data Lineage Server.
 # This configuration file is in YAML format.
 
-# The server can read queries from a json file containing an array of SQL statements.
-# The other option is to read from snowflake.
-# There is a section for each option. Uncomment the section and fill in the values.
-# ####
-# File
-# ####
-# file:
-#   queries: <path to file>
-#   catalog: <path to file>
+# This configuration file is in YAML format.
 
-# #########
-# Snowflake
-# #########
-# snowflake:
-#   user: USER
-#   password: PASSWORD
-#   account: ACCOUNT
-#   warehouse: WAREHOUSE
-#   database: DATABASE
-#   schema: SCHEMA
+# Copy paste the section of the relevant database and fill in the values.
+
+# The configuration file consists of
+# - a catalog sink where metadata is stored.
+# - a list of database connections to scan.
+
+
+# The following catalog types are supported:
+# - Files
+# - Postgres
+# - MySQL
+# Choose one of them
+
+catalog:
+  type: postgres
+  user: db_user
+  password: db_password
+  host: db_host
+  port: db_port
+
+connections:
+  - name: pg
+    type: postgres
+    database: db_database
+    username: db_user
+    password: db_password
+    port: db_port
+    uri: db_uri
+  - name: mys
+    type: mysql
+    database: db_database
+    username: db_user
+    password: db_password
+    port: db_port
+    uri: db_uri
+  - name: bq
+    type: bigquery
+    key_path: db_key_path
+    project_credentials:  db_creds
+    project_id: db_project_id
+  - name: gl
+    type: glue
+  - name: sf
+    type: snowflake
+    database: db_database
+    username: db_user
+    password: db_password
+    account: db_account
+    role: db_role
+    warehouse: db_warehouse
 """
 
 
@@ -74,17 +104,12 @@ def runserver(obj, port):
         config = yaml.load(file, Loader=yaml.FullLoader)
 
     logger.logger.debug("Load config file: {}".format(obj))
-    queries = None
-    catalog = None
     logger.logger.debug(config)
-    if "file" in config:
-        queries = FileSource(config["file"]["queries"])
-        catalog_source = FileSource(config["file"]["catalog"])
-        catalog = Database(catalog_source.name, **catalog_source.read())
+    catalog = LineageCatalog(**config["catalog"])
 
     #    elif config.snowflake is not None:
     #        source = Snowflake(config.file)
-    server = Server(port, get_graph(queries, catalog, True))
+    server = Server(port, catalog)
     server.run_server()
 
 
