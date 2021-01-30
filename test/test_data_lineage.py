@@ -1,5 +1,3 @@
-# type: ignore
-
 from data_lineage.data_lineage import get_dml_queries
 
 

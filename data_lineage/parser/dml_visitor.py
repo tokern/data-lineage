@@ -1,5 +1,3 @@
-# type: ignore
-
 from dbcat.catalog.orm import Catalog
 
 from data_lineage.parser.table_visitor import (
