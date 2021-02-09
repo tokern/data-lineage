@@ -1,9 +1,14 @@
 from collections import deque
+from typing import Any, Dict, Tuple
 
 import networkx as nx
+from dbcat.catalog.orm import CatColumn, CatTable
+
+from data_lineage.catalog import LineageCatalog
+from data_lineage.log_mixin import LogMixin
 
 
-class Graph:
+class Graph(LogMixin):
     def __init__(self, name="Data Lineage Graph"):
         self.name = name
         self._graph = nx.DiGraph()
@@ -16,16 +21,22 @@ class Graph:
     def graph(self, new_graph):
         self._graph = new_graph
 
+    def add_node(self, node: Tuple):
+        self._graph.add_node(node)
+
+    def add_edge(self, source: Tuple, target: Tuple, payload: Dict[Any, Any]):
+        self._graph.add_edge(source, target)
+
     def create_graph(self, queries):
         for query in queries:
             if query.target_table not in self._graph:
-                self._graph.add_node(query.target_table)
+                self.add_node(query.target_table)
 
             for node in query.source_tables:
                 if node not in self._graph:
-                    self._graph.add_node(node)
+                    self.add_node(node)
 
-                self._graph.add_edge(node, query.target_table)
+                self.add_edge(node, query.target_table)
 
     def has_node(self, table):
         return (
@@ -39,26 +50,34 @@ class Graph:
             > 0
         )
 
-    def sub_graphs(self, table):
+    def sub_graphs(self, table: CatTable):
         column_dg = nx.DiGraph()
 
-        remaining_nodes = [
-            tup for tup in self._graph.nodes if all(x == y for x, y in zip(tup, table))
-        ]
+        remaining_nodes = []
 
+        for node in self._graph.nodes:
+            if node.table == table:
+                remaining_nodes.append(node)
+
+        self.logger.debug(
+            "Searched for {}. Found {} nodes".format(table, len(remaining_nodes))
+        )
         processed_nodes = set()
 
         while len(remaining_nodes) > 0:
             t = remaining_nodes.pop()
             if t not in processed_nodes:
                 column_dg.add_node(t)
+                self.logger.debug("Added Node: {}".format(t))
             pred = self._graph.predecessors(t)
             for n in pred:
                 if n not in processed_nodes:
                     column_dg.add_node(n)
                     remaining_nodes.append(n)
                     processed_nodes.add(n)
+                    self.logger.debug("Processed node {}".format(n))
                 column_dg.add_edge(n, t)
+                self.logger.debug("Added edge {} -> {}".format(n, t))
 
         sub_graph = Graph(name="Data Lineage for {}".format(table))
         sub_graph.graph = column_dg
@@ -200,11 +219,28 @@ class ColumnGraph(Graph):
         for query in queries:
             for column in query.target_columns:
                 if column not in self._graph:
-                    self._graph.add_node(column)
+                    self.add_node(column)
 
             for column in query.source_columns:
                 if column not in self._graph:
-                    self._graph.add_node(column)
+                    self.add_node(column)
 
             for source, target in zip(query.source_columns, query.target_columns):
-                self._graph.add_edge(source, target)
+                self.add_edge(source, target)
+
+
+class DbGraph(ColumnGraph):
+    def __init__(self, connection: LineageCatalog, name: str = "Lineage"):
+        super(DbGraph, self).__init__(name)
+        self._connection = connection
+
+    def add_node(self, node: CatColumn):
+        self.logger.debug("Add column to graph - {}".format(node))
+        self.graph.add_node(node)
+
+    def add_edge(
+        self, source: CatColumn, target: CatColumn, payload: Dict[Any, Any] = {}
+    ):
+        edge, created = self._connection.get_column_edge(source, target, payload)
+        self.graph.add_edge(source, target)
+        # self.logger.debug(edge)

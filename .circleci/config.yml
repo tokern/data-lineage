@@ -23,16 +23,43 @@ workflows:
 
 jobs:
   build: &test-template
-    environment:
-      PYVERSION: "3.8.1"
     docker:
-      - image: circleci/python:3.8.1
+      - image: circleci/python:3.8.3
         environment:
           PIPENV_VENV_IN_PROJECT: true
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      - image: circleci/postgres:12.0-alpine-ram
+        environment:
+          POSTGRES_USER: piiuser
+          POSTGRES_PASSWORD: p11secret
+          POSTGRES_DB: piidb
+
+      - image: circleci/mysql:8.0.18-ram
+        environment:
+          MYSQL_USER: piiuser
+          MYSQL_PASSWORD: p11secret
+          MYSQL_DATABASE: piidb
+          MYSQL_ROOT_PASSWORD: r00tPa33w0rd
+    environment:
+      PYVERSION: "3.8.3"
     working_directory: ~/repo
 
     steps:
       - checkout
+
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+
+      - run:
+          name: Wait for db
+          command: |
+            dockerize -wait tcp://localhost:5432 -timeout 1m
+            dockerize -wait tcp://localhost:3306 -timeout 1m
 
       # Download and cache dependencies
       - restore_cache:

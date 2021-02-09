@@ -18,7 +18,7 @@ class Missing:
 NoneType = type(None)
 
 
-Missing = Missing()
+Missing = Missing()  # type: ignore
 "Singleton returned when trying to get a non-existing attribute out of a :class:`Node`."
 
 
@@ -43,12 +43,12 @@ class AcceptingBase:
     __slots__ = ("_parent_node", "_parent_attribute")
 
     def __new__(cls, details, parent=None, name=None):
-        if not isinstance(parent, (AcceptingNode, NoneType)):
+        if not isinstance(parent, (AcceptingNode, NoneType)):  # type: ignore
             raise ValueError(
                 "Unexpected value for 'parent', must be either None"
                 " or a Node instance, got %r" % type(parent)
             )
-        if not isinstance(name, (NoneType, str, tuple)):
+        if not isinstance(name, (NoneType, str, tuple)):  # type: ignore
             raise ValueError(
                 "Unexpected value for 'name', must be either None,"
                 " a string or a tuple, got %r" % type(name)
@@ -250,7 +250,7 @@ class AcceptingScalar(AcceptingBase):
     __slots__ = AcceptingBase.__slots__ + ("_value",)
 
     def _init(self, value, parent, name):
-        if not isinstance(value, (NoneType, bool, float, int, str)):
+        if not isinstance(value, (NoneType, bool, float, int, str)):  # type: ignore
             raise ValueError(
                 "Unexpected value for 'value', must be either None or a"
                 " bool|float|int|str instance, got %r" % type(value)
