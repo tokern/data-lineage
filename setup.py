@@ -90,7 +90,7 @@ setup(
         "google-auth==1.24.0",
         "google-auth-httplib2==0.0.4",
         "googleapis-common-protos==1.52.0",
-        "httplib2==0.18.1",
+        "httplib2==0.19.0",
         "idna==2.10",
         "inflection==0.5.1",
         "isodate==0.6.0",
