@@ -73,7 +73,7 @@ setup(
         "cffi==1.14.4",
         "chardet==3.0.4",
         "click==7.1.2",
-        "cryptography==3.3.1",
+        "cryptography==3.3.2",
         "dash==1.19.0",
         "dash-core-components==1.15.0",
         "dash-html-components==1.1.2",
