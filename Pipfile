@@ -14,7 +14,7 @@ plotly = "*"
 dash = "*"
 click = "*"
 PyYAML = "*"
-dbcat = "==0.3.0"
+dbcat = "*"
 
 [dev-packages]
 black = "==19.10b0"
