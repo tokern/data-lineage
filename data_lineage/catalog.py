@@ -40,9 +40,13 @@ class LineageCatalog(Catalog):
                 )
             session.commit()
 
+    def get_column_edges(self) -> List[ColumnEdge]:
+        with closing(self.session) as session:
+            return session.query(ColumnEdge).all()
+
     def get_column_edge(
         self, source_name: CatColumn, target_name: CatColumn, payload: Dict[Any, Any]
-    ):
+    ) -> ColumnEdge:
         with closing(self.session) as session:
             source = (
                 session.query(CatColumn)

@@ -5,7 +5,7 @@ import yaml
 from dbcat.catalog.orm import Catalog, CatDatabase
 from dbcat.scanners.json import File
 
-from data_lineage.catalog import LineageCatalog
+from data_lineage import catalog_connection
 from data_lineage.parser import parse
 
 
@@ -87,16 +87,15 @@ catalog:
 
 
 @pytest.fixture(scope="session")
-def catalog_connection(setup_catalog):
-    config = yaml.safe_load(catalog_conf)
-    with closing(LineageCatalog(**config["catalog"])) as conn:
+def open_catalog_connection(setup_catalog):
+    with closing(catalog_connection(catalog_conf)) as conn:
         yield conn
 
 
 @pytest.fixture(scope="session")
-def save_catalog(load_catalog, catalog_connection):
+def save_catalog(load_catalog, open_catalog_connection):
     file_catalog = load_catalog
-    catalog_connection.save_catalog(file_catalog)
-    yield file_catalog, catalog_connection
-    with closing(catalog_connection.session) as session:
+    open_catalog_connection.save_catalog(file_catalog)
+    yield file_catalog, open_catalog_connection
+    with closing(open_catalog_connection.session) as session:
         [session.delete(db) for db in session.query(CatDatabase).all()]

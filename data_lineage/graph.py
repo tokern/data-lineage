@@ -243,4 +243,11 @@ class DbGraph(ColumnGraph):
     ):
         edge, created = self._connection.get_column_edge(source, target, payload)
         self.graph.add_edge(source, target)
-        # self.logger.debug(edge)
+        self.logger.debug(edge)
+
+    def load(self):
+        column_edges = self._connection.get_column_edges()
+        for edge in column_edges:
+            self.graph.add_node(edge.source)
+            self.graph.add_node(edge.target)
+            self.add_edge(edge.source, edge.target)
