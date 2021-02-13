@@ -66,31 +66,27 @@ class DmlVisitor(Visitor):
         self.logger.debug(
             "Searching for: {}".format(target_table_visitor.search_string)
         )
-        candidate_tables = catalog.search_table(**target_table_visitor.search_string)
-        if len(candidate_tables) == 0:
-            raise RuntimeError("'{}' table not found".format(target_table_visitor.fqdn))
-        elif len(candidate_tables) > 1:
-            raise RuntimeError("Ambiguous table name. Multiple matches found")
-
-        self._target_table = candidate_tables[0]
-        self.logger.debug("Bound target table: {}".format(candidate_tables[0]))
+        self._target_table = catalog.search_table(**target_table_visitor.search_string)
+        self.logger.debug("Bound target table: {}".format(self._target_table))
 
         if len(self._target_columns) == 0:
-            self._target_columns = catalog.get_columns_for_table(candidate_tables[0])
+            self._target_columns = catalog.get_columns_for_table(self._target_table)
             self.logger.debug("Bound all columns in {}".format(self._target_table))
         else:
-            bound_cols = []
-            for column in self._target_columns:
-                bound = catalog.get_columns_for_table(
-                    candidate_tables[0], column_names=[column]
-                )
-                if len(bound) == 0:
-                    raise RuntimeError("{} not found in table".format(column))
-                elif len(bound) > 1:
-                    raise RuntimeError("Ambiguous column name. Multiple matches found")
+            bound_cols = catalog.get_columns_for_table(
+                self._target_table, column_names=self._target_columns
+            )
+            # Handle error case
+            if len(bound_cols) != len(self._target_columns):
+                for column in self._target_columns:
+                    found = False
+                    for bound in bound_cols:
+                        if column == bound.name:
+                            found = True
+                            break
 
-                self.logger.debug("Bound target column: {}".format(bound[0]))
-                bound_cols.append(bound[0])
+                    if not found:
+                        raise RuntimeError("'{}' column is not found".format(column))
 
             self._target_columns = bound_cols
 
@@ -104,14 +100,9 @@ class DmlVisitor(Visitor):
 
             self.logger.debug("Searching for: {}".format(visitor.search_string))
 
-            candidate_tables = catalog.search_table(**visitor.search_string)
-            if len(candidate_tables) == 0:
-                raise RuntimeError("'{}' table not found".format(visitor.fqdn))
-            elif len(candidate_tables) > 1:
-                raise RuntimeError("Ambiguous table name. Multiple matches found")
-
-            self.logger.debug("Bound source table: {}".format(candidate_tables[0]))
-            bound_tables.append(candidate_tables[0])
+            candidate_table = catalog.search_table(**visitor.search_string)
+            self.logger.debug("Bound source table: {}".format(candidate_table))
+            bound_tables.append(candidate_table)
 
         self._source_tables = bound_tables
         bound_cols = []
@@ -124,14 +115,10 @@ class DmlVisitor(Visitor):
                 table_name = {"table_like": column_ref_visitor.name[0]}
 
             self.logger.debug("Searching for: {}".format(table_name))
-            candidate_tables = catalog.search_table(**table_name)
-            if len(candidate_tables) == 0:
-                raise RuntimeError("'{}' table not found".format(visitor.fqdn))
-            elif len(candidate_tables) > 1:
-                raise RuntimeError("Ambiguous table name. Multiple matches found")
+            candidate_table = catalog.search_table(**table_name)
 
             bound = catalog.get_columns_for_table(
-                table=candidate_tables[0], column_names=[column_ref_visitor.name[1]]
+                table=candidate_table, column_names=[column_ref_visitor.name[1]]
             )
             if len(bound) == 0:
                 raise RuntimeError("{} not found in table".format(column))
