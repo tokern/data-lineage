@@ -27,6 +27,7 @@ twine = "*"
 wheel = "*"
 pipenv-setup = "*"
 mypy = "*"
+jupyter = "*"
 
 [dev-packages.e1839a8]
 path = "."
