@@ -1,12 +1,13 @@
-from data_lineage.data_lineage import get_dml_queries
+from data_lineage.parser import visit_dml_queries
 
 
-def test_parser(parse_queries):
-    assert len(parse_queries) == 5
+def test_parser(parse_queries_fixture):
+    assert len(parse_queries_fixture) == 5
 
 
-def test_visitor(parse_queries):
-    dml = get_dml_queries(parse_queries)
+def test_visitor(save_catalog, parse_queries_fixture):
+    file_catalog, catalog = save_catalog
+    dml = visit_dml_queries(catalog, parse_queries_fixture)
     assert len(dml) == 5
 
     for d in dml:
