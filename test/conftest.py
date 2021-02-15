@@ -6,7 +6,7 @@ from dbcat.catalog.orm import Catalog, CatDatabase
 from dbcat.scanners.json import File
 
 from data_lineage import catalog_connection
-from data_lineage.parser import parse
+from data_lineage.parser import parse_queries
 
 
 @pytest.fixture(scope="session")
@@ -26,11 +26,8 @@ def load_queries():
 
 
 @pytest.fixture(scope="session")
-def parse_queries(load_queries):
-    parsed = []
-    for query in load_queries:
-        parsed.append(parse(query))
-
+def parse_queries_fixture(load_queries):
+    parsed = parse_queries(load_queries)
     yield parsed
 
 

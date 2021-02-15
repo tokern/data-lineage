@@ -5,9 +5,9 @@ import pytest
 from networkx import edges, nodes
 
 from data_lineage.catalog import ColumnEdge
-from data_lineage.data_lineage import get_dml_queries
-from data_lineage.graph import DbGraph
+from data_lineage.parser import create_graph
 from data_lineage.parser import parse as parse_single
+from data_lineage.parser import visit_dml_queries
 from data_lineage.parser.dml_visitor import SelectSourceVisitor
 
 logging.basicConfig(level=getattr(logging, "DEBUG"))
@@ -27,17 +27,17 @@ def test_no_insert_column_graph(save_catalog):
     parsed.accept(visitor)
     visitor.bind(catalog)
 
-    graph = DbGraph(catalog)
-    graph.create_graph([visitor])
-    assert [node.fqdn for node in list(nodes(graph.graph))] == [
+    graph = create_graph(catalog, [visitor])
+
+    assert [node.fqdn for node in sorted(list(nodes(graph.graph)))] == [
+        ("test", "default", "page", "page_id"),
+        ("test", "default", "page", "page_latest"),
+        ("test", "default", "page", "page_title"),
         ("test", "default", "page_lookup_nonredirect", "redirect_id"),
         ("test", "default", "page_lookup_nonredirect", "redirect_title"),
         ("test", "default", "page_lookup_nonredirect", "true_title"),
         ("test", "default", "page_lookup_nonredirect", "page_id"),
         ("test", "default", "page_lookup_nonredirect", "page_version"),
-        ("test", "default", "page", "page_id"),
-        ("test", "default", "page", "page_title"),
-        ("test", "default", "page", "page_latest"),
     ]
 
     expected_edges = [
@@ -82,13 +82,13 @@ def test_basic_column_graph(save_catalog):
     parsed.accept(visitor)
     visitor.bind(catalog)
 
-    graph = DbGraph(catalog)
-    graph.create_graph([visitor])
-    assert [node.fqdn for node in list(nodes(graph.graph))] == [
-        ("test", "default", "page_lookup_nonredirect", "page_id"),
-        ("test", "default", "page_lookup_nonredirect", "page_version"),
+    graph = create_graph(catalog, [visitor])
+
+    assert [node.fqdn for node in sorted(list(nodes(graph.graph)))] == [
         ("test", "default", "page", "page_id"),
         ("test", "default", "page", "page_latest"),
+        ("test", "default", "page_lookup_nonredirect", "page_id"),
+        ("test", "default", "page_lookup_nonredirect", "page_version"),
     ]
 
     expected_edges = [
@@ -128,50 +128,43 @@ def test_basic_column_graph(save_catalog):
 
 
 @pytest.fixture(scope="module")
-def get_graph(save_catalog, parse_queries):
+def get_graph(save_catalog, parse_queries_fixture):
     file_catalog, catalog = save_catalog
-    dml_queries = get_dml_queries(parse_queries)
+    dml_queries = visit_dml_queries(catalog, parse_queries_fixture)
 
-    [query.bind(catalog) for query in dml_queries]
-
-    graph = DbGraph(catalog)
-    graph.create_graph(dml_queries)
+    graph = create_graph(catalog, dml_queries)
 
     yield graph, catalog
 
 
 def test_column_graph(get_graph):
     graph, catalog = get_graph
-    assert [node.fqdn for node in list(nodes(graph.graph))] == [
-        ("test", "default", "page_lookup_nonredirect", "redirect_id"),
-        ("test", "default", "page_lookup_nonredirect", "redirect_title"),
-        ("test", "default", "page_lookup_nonredirect", "true_title"),
-        ("test", "default", "page_lookup_nonredirect", "page_id"),
-        ("test", "default", "page_lookup_nonredirect", "page_version"),
-        ("test", "default", "page", "page_id"),
-        ("test", "default", "page", "page_title"),
-        ("test", "default", "page", "page_latest"),
-        ("test", "default", "page_lookup_redirect", "redirect_id"),
-        ("test", "default", "page_lookup_redirect", "redirect_title"),
-        ("test", "default", "page_lookup_redirect", "true_title"),
-        ("test", "default", "page_lookup_redirect", "page_id"),
-        ("test", "default", "page_lookup_redirect", "page_version"),
-        ("test", "default", "page_lookup", "redirect_id"),
-        ("test", "default", "page_lookup", "redirect_title"),
-        ("test", "default", "page_lookup", "true_title"),
-        ("test", "default", "page_lookup", "page_id"),
-        ("test", "default", "page_lookup", "page_version"),
-        ("test", "default", "filtered_pagecounts", "group"),
-        ("test", "default", "filtered_pagecounts", "page_title"),
+    assert [node.fqdn for node in sorted(list(nodes(graph.graph)))] == [
         ("test", "default", "filtered_pagecounts", "views"),
         ("test", "default", "filtered_pagecounts", "bytes_sent"),
         ("test", "default", "normalized_pagecounts", "page_id"),
         ("test", "default", "normalized_pagecounts", "page_title"),
         ("test", "default", "normalized_pagecounts", "page_url"),
         ("test", "default", "normalized_pagecounts", "views"),
-        ("test", "default", "normalized_pagecounts", "bytes_sent"),
+        ("test", "default", "page", "page_id"),
+        ("test", "default", "page", "page_latest"),
+        ("test", "default", "page", "page_title"),
+        ("test", "default", "page_lookup", "redirect_id"),
+        ("test", "default", "page_lookup", "redirect_title"),
+        ("test", "default", "page_lookup", "true_title"),
+        ("test", "default", "page_lookup", "page_id"),
+        ("test", "default", "page_lookup", "page_version"),
+        ("test", "default", "page_lookup_nonredirect", "redirect_id"),
+        ("test", "default", "page_lookup_nonredirect", "redirect_title"),
+        ("test", "default", "page_lookup_nonredirect", "true_title"),
+        ("test", "default", "page_lookup_nonredirect", "page_id"),
+        ("test", "default", "page_lookup_nonredirect", "page_version"),
+        ("test", "default", "page_lookup_redirect", "redirect_id"),
+        ("test", "default", "page_lookup_redirect", "redirect_title"),
+        ("test", "default", "page_lookup_redirect", "true_title"),
+        ("test", "default", "page_lookup_redirect", "page_id"),
+        ("test", "default", "page_lookup_redirect", "page_version"),
     ]
-
     expected_edges = [
         (
             ("test", "default", "page", "page_id"),

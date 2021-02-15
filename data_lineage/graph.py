@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 import networkx as nx
 from dbcat.catalog.orm import CatColumn, CatTable
@@ -8,8 +8,9 @@ from data_lineage.catalog import LineageCatalog
 from data_lineage.log_mixin import LogMixin
 
 
-class Graph(LogMixin):
-    def __init__(self, name="Data Lineage Graph"):
+class DbGraph(LogMixin):
+    def __init__(self, connection: LineageCatalog, name: str = "Lineage"):
+        self._connection = connection
         self.name = name
         self._graph = nx.DiGraph()
 
@@ -21,22 +22,23 @@ class Graph(LogMixin):
     def graph(self, new_graph):
         self._graph = new_graph
 
-    def add_node(self, node: Tuple):
+    def add_node(self, node: CatColumn):
+        self.logger.debug("Add column to graph - {}".format(node))
         self._graph.add_node(node)
 
-    def add_edge(self, source: Tuple, target: Tuple, payload: Dict[Any, Any]):
+    def add_edge(
+        self, source: CatColumn, target: CatColumn, payload: Dict[Any, Any] = {}
+    ):
+        edge, created = self._connection.get_column_edge(source, target, payload)
         self._graph.add_edge(source, target)
+        self.logger.debug(edge)
 
-    def create_graph(self, queries):
-        for query in queries:
-            if query.target_table not in self._graph:
-                self.add_node(query.target_table)
-
-            for node in query.source_tables:
-                if node not in self._graph:
-                    self.add_node(node)
-
-                self.add_edge(node, query.target_table)
+    def load(self):
+        column_edges = self._connection.get_column_edges()
+        for edge in column_edges:
+            self.graph.add_node(edge.source)
+            self.graph.add_node(edge.target)
+            self.add_edge(edge.source, edge.target)
 
     def has_node(self, table):
         return (
@@ -79,7 +81,9 @@ class Graph(LogMixin):
                 column_dg.add_edge(n, t)
                 self.logger.debug("Added edge {} -> {}".format(n, t))
 
-        sub_graph = Graph(name="Data Lineage for {}".format(table))
+        sub_graph = DbGraph(
+            connection=self._connection, name="Data Lineage for {}".format(table)
+        )
         sub_graph.graph = column_dg
         return sub_graph
 
@@ -101,7 +105,9 @@ class Graph(LogMixin):
                     processed_nodes.add(n)
                 tableDG.add_edge(n, t)
 
-        sub_graph = Graph(name="Data Lineage for {}".format(table))
+        sub_graph = DbGraph(
+            connection=self._connection, name="Data Lineage for {}".format(table)
+        )
         sub_graph.graph = tableDG
         return sub_graph
 
@@ -212,42 +218,3 @@ class Graph(LogMixin):
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             ),
         )
-
-
-class ColumnGraph(Graph):
-    def create_graph(self, queries):
-        for query in queries:
-            for column in query.target_columns:
-                if column not in self._graph:
-                    self.add_node(column)
-
-            for column in query.source_columns:
-                if column not in self._graph:
-                    self.add_node(column)
-
-            for source, target in zip(query.source_columns, query.target_columns):
-                self.add_edge(source, target)
-
-
-class DbGraph(ColumnGraph):
-    def __init__(self, connection: LineageCatalog, name: str = "Lineage"):
-        super(DbGraph, self).__init__(name)
-        self._connection = connection
-
-    def add_node(self, node: CatColumn):
-        self.logger.debug("Add column to graph - {}".format(node))
-        self.graph.add_node(node)
-
-    def add_edge(
-        self, source: CatColumn, target: CatColumn, payload: Dict[Any, Any] = {}
-    ):
-        edge, created = self._connection.get_column_edge(source, target, payload)
-        self.graph.add_edge(source, target)
-        self.logger.debug(edge)
-
-    def load(self):
-        column_edges = self._connection.get_column_edges()
-        for edge in column_edges:
-            self.graph.add_node(edge.source)
-            self.graph.add_node(edge.target)
-            self.add_edge(edge.source, edge.target)
