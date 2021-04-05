@@ -1,5 +1,7 @@
 from enum import Enum
 
+from pglast.parser import parse_sql
+
 
 class Missing:
     def __bool__(self):
@@ -297,3 +299,25 @@ class AcceptingScalar(AcceptingBase):
     @property
     def value(self):
         return self._value
+
+
+class Parsed:
+    def __init__(self, name: str, node: AcceptingNode):
+        self._name = name
+        self._node = node
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def node(self):
+        return self._node
+
+
+def parse(sql: str, name: str = None) -> Parsed:
+    if name is None:
+        name = str(hash(sql))
+    node = AcceptingNode(parse_sql(sql))
+
+    return Parsed(name, node)

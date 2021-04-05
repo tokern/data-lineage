@@ -1,18 +1,17 @@
 from collections import deque
-from typing import Any, Dict
 
 import networkx as nx
-from dbcat.catalog.orm import CatColumn, CatTable
+from dbcat.catalog import Catalog, CatTable
 
-from data_lineage.catalog import LineageCatalog
 from data_lineage.log_mixin import LogMixin
 
 
 class DbGraph(LogMixin):
-    def __init__(self, connection: LineageCatalog, name: str = "Lineage"):
-        self._connection = connection
+    def __init__(self, catalog: Catalog, job_ids: set = None, name: str = "Lineage"):
+        self._catalog = catalog
         self.name = name
         self._graph = nx.DiGraph()
+        self._job_ids = job_ids
 
     @property
     def graph(self):
@@ -22,23 +21,12 @@ class DbGraph(LogMixin):
     def graph(self, new_graph):
         self._graph = new_graph
 
-    def add_node(self, node: CatColumn):
-        self.logger.debug("Add column to graph - {}".format(node))
-        self._graph.add_node(node)
-
-    def add_edge(
-        self, source: CatColumn, target: CatColumn, payload: Dict[Any, Any] = {}
-    ):
-        edge, created = self._connection.get_column_edge(source, target, payload)
-        self._graph.add_edge(source, target)
-        self.logger.debug(edge)
-
     def load(self):
-        column_edges = self._connection.get_column_edges()
+        column_edges = self._catalog.get_column_lineages(self._job_ids)
         for edge in column_edges:
-            self.graph.add_node(edge.source)
-            self.graph.add_node(edge.target)
-            self.add_edge(edge.source, edge.target)
+            self._graph.add_node(edge.source)
+            self._graph.add_node(edge.target)
+            self._graph.add_edge(edge.source, edge.target)
 
     def has_node(self, table):
         return (
@@ -82,7 +70,9 @@ class DbGraph(LogMixin):
                 self.logger.debug("Added edge {} -> {}".format(n, t))
 
         sub_graph = DbGraph(
-            connection=self._connection, name="Data Lineage for {}".format(table)
+            catalog=self._catalog,
+            name="Data Lineage for {}".format(table),
+            job_ids=self._job_ids,
         )
         sub_graph.graph = column_dg
         return sub_graph
@@ -106,7 +96,7 @@ class DbGraph(LogMixin):
                 tableDG.add_edge(n, t)
 
         sub_graph = DbGraph(
-            connection=self._connection, name="Data Lineage for {}".format(table)
+            catalog=self._catalog, name="Data Lineage for {}".format(table)
         )
         sub_graph.graph = tableDG
         return sub_graph

@@ -6,7 +6,7 @@ def test_parser(parse_queries_fixture):
 
 
 def test_visitor(save_catalog, parse_queries_fixture):
-    file_catalog, catalog = save_catalog
+    catalog = save_catalog
     dml = visit_dml_queries(catalog, parse_queries_fixture)
     assert len(dml) == 5
 

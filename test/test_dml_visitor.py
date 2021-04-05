@@ -1,7 +1,6 @@
 import pytest
 
 from data_lineage.parser import parse
-from data_lineage.parser import parse as parse_single
 from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     SelectIntoVisitor,
@@ -31,9 +30,9 @@ from data_lineage.parser.dml_visitor import (
     ],
 )
 def test_sanity_insert(target, sources, sql):
-    node = parse(sql)
-    insert_visitor = SelectSourceVisitor()
-    node.accept(insert_visitor)
+    parsed = parse(sql)
+    insert_visitor = SelectSourceVisitor("test_sanity_insert")
+    parsed.node.accept(insert_visitor)
     insert_visitor.resolve()
 
     assert insert_visitor.target_table == target
@@ -62,9 +61,9 @@ def test_sanity_insert(target, sources, sql):
     ],
 )
 def test_sanity_ctas(target, sources, sql):
-    node = parse(sql)
-    visitor = SelectSourceVisitor()
-    node.accept(visitor)
+    parsed = parse(sql)
+    visitor = SelectSourceVisitor("test_sanity_ctas")
+    parsed.node.accept(visitor)
     visitor.resolve()
     assert visitor.target_table == target
     assert visitor.source_tables == sources
@@ -91,9 +90,9 @@ def test_sanity_ctas(target, sources, sql):
     ],
 )
 def test_sanity_select_into(target, sources, sql):
-    node = parse(sql)
-    visitor = SelectIntoVisitor()
-    node.accept(visitor)
+    parsed = parse(sql)
+    visitor = SelectIntoVisitor("test_sanity_select_into")
+    parsed.node.accept(visitor)
     visitor.resolve()
 
     assert visitor.target_table == target
@@ -111,9 +110,9 @@ def test_sanity_select_into(target, sources, sql):
     ],
 )
 def test_copy(target, query):
-    node = parse(query)
-    visitor = CopyFromVisitor()
-    node.accept(visitor)
+    parsed = parse(query)
+    visitor = CopyFromVisitor("test_copy")
+    parsed.node.accept(visitor)
     visitor.resolve()
 
     assert visitor.target_table == target
@@ -121,9 +120,9 @@ def test_copy(target, query):
 
 def test_insert():
     query = "INSERT INTO page_lookup_nonredirect SELECT page.page_id, page.page_latest FROM page"
-    parsed = parse_single(query)
-    visitor = SelectSourceVisitor()
-    parsed.accept(visitor)
+    parsed = parse(query)
+    visitor = SelectSourceVisitor("test_insert")
+    parsed.node.accept(visitor)
     visitor.resolve()
 
     assert len(visitor.target_columns) == 0
@@ -134,9 +133,9 @@ def test_insert():
 
 def test_insert_cols():
     query = "INSERT INTO page_lookup_nonredirect(page_id, latest) SELECT page.page_id, page.page_latest FROM page"
-    parsed = parse_single(query)
-    visitor = SelectSourceVisitor()
-    parsed.accept(visitor)
+    parsed = parse(query)
+    visitor = SelectSourceVisitor("test_insert_cols")
+    parsed.node.accept(visitor)
     visitor.resolve()
 
     assert len(visitor.target_columns) == 2
