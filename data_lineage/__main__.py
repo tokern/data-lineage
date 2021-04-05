@@ -2,9 +2,9 @@ import logging
 
 import click
 import yaml
+from dbcat.catalog import Catalog
 
 from data_lineage import __version__
-from data_lineage.catalog import LineageCatalog
 from data_lineage.log_mixin import LogMixin
 from data_lineage.server import Server
 
@@ -103,7 +103,7 @@ def runserver(obj, port):
 
     logger.logger.debug("Load config file: {}".format(obj))
     logger.logger.debug(config)
-    catalog = LineageCatalog(**config["catalog"])
+    catalog = Catalog(**config["catalog"])
 
     #    elif config.snowflake is not None:
     #        source = Snowflake(config.file)

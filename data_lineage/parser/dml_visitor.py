@@ -1,4 +1,6 @@
-from dbcat.catalog.orm import Catalog
+from typing import List
+
+from dbcat.catalog import Catalog, CatColumn, CatTable
 
 from data_lineage.parser.table_visitor import (
     ColumnRefVisitor,
@@ -9,11 +11,16 @@ from data_lineage.parser.visitor import Visitor
 
 
 class DmlVisitor(Visitor):
-    def __init__(self):
+    def __init__(self, name: str):
+        self._name = name
         self._target_table = None
-        self._target_columns = []
-        self._source_tables = []
-        self._source_columns = []
+        self._target_columns: List[CatColumn] = []
+        self._source_tables: List[CatTable] = []
+        self._source_columns: List[CatColumn] = []
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def target_table(self):
@@ -89,6 +96,7 @@ class DmlVisitor(Visitor):
                         raise RuntimeError("'{}' column is not found".format(column))
 
             self._target_columns = bound_cols
+            self.logger.debug("Bound {} target columns".format(len(bound_cols)))
 
         alias_map = {}
         bound_tables = []
@@ -132,6 +140,9 @@ class DmlVisitor(Visitor):
 
 
 class SelectSourceVisitor(DmlVisitor):
+    def __init__(self, name):
+        super(SelectSourceVisitor, self).__init__(name)
+
     def visit_select_stmt(self, node):
         table_visitor = TableVisitor()
         table_visitor.visit(node)
@@ -140,6 +151,9 @@ class SelectSourceVisitor(DmlVisitor):
 
 
 class SelectIntoVisitor(DmlVisitor):
+    def __init__(self, name):
+        super(SelectIntoVisitor, self).__init__(name)
+
     def visit_select_stmt(self, node):
         super(SelectIntoVisitor, self).visit(node.intoClause)
         table_visitor = TableVisitor()
@@ -149,6 +163,9 @@ class SelectIntoVisitor(DmlVisitor):
 
 
 class CopyFromVisitor(DmlVisitor):
+    def __init__(self, name):
+        super(CopyFromVisitor, self).__init__(name)
+
     def visit_copy_stmt(self, node):
         if node.is_from:
             super(CopyFromVisitor, self).visit_copy_stmt(node)

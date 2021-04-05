@@ -2,19 +2,17 @@ import logging
 from contextlib import closing
 
 import pytest
+from dbcat.catalog import ColumnLineage
 from networkx import edges, nodes
 
-from data_lineage.catalog import ColumnEdge
-from data_lineage.parser import create_graph
-from data_lineage.parser import parse as parse_single
-from data_lineage.parser import visit_dml_queries
+from data_lineage.parser import create_graph, parse, visit_dml_queries
 from data_lineage.parser.dml_visitor import SelectSourceVisitor
 
 logging.basicConfig(level=getattr(logging, "DEBUG"))
 
 
 def test_no_insert_column_graph(save_catalog):
-    file_catalog, catalog = save_catalog
+    catalog = save_catalog
     query = """
         INSERT INTO page_lookup_nonredirect
         SELECT page.page_id as redirect_id, page.page_title as redirect_title,
@@ -22,9 +20,9 @@ def test_no_insert_column_graph(save_catalog):
         FROM page
     """
 
-    parsed = parse_single(query)
-    visitor = SelectSourceVisitor()
-    parsed.accept(visitor)
+    parsed = parse(query)
+    visitor = SelectSourceVisitor(parsed.name)
+    parsed.node.accept(visitor)
     visitor.bind(catalog)
 
     graph = create_graph(catalog, [visitor])
@@ -67,19 +65,19 @@ def test_no_insert_column_graph(save_catalog):
     ] == expected_edges
 
     with closing(catalog.session) as session:
-        all_edges = session.query(ColumnEdge).all()
+        all_edges = session.query(ColumnLineage).all()
         assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
             expected_edges
         )
 
 
 def test_basic_column_graph(save_catalog):
-    file_catalog, catalog = save_catalog
+    catalog = save_catalog
 
     query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
-    parsed = parse_single(query)
-    visitor = SelectSourceVisitor()
-    parsed.accept(visitor)
+    parsed = parse(query, "basic_column_graph")
+    visitor = SelectSourceVisitor(parsed.name)
+    parsed.node.accept(visitor)
     visitor.bind(catalog)
 
     graph = create_graph(catalog, [visitor])
@@ -107,9 +105,7 @@ def test_basic_column_graph(save_catalog):
     ] == expected_edges
 
     table = catalog.get_table(
-        database_name="test",
-        schema_name="default",
-        table_name="page_lookup_nonredirect",
+        source_name="test", schema_name="default", table_name="page_lookup_nonredirect",
     )
     columns = catalog.get_columns_for_table(
         table, column_names=["page_id", "page_version"]
@@ -118,8 +114,8 @@ def test_basic_column_graph(save_catalog):
     assert len(columns) == 2
     with closing(catalog.session) as session:
         all_edges = (
-            session.query(ColumnEdge)
-            .filter(ColumnEdge.target_id.in_([c.id for c in columns]))
+            session.query(ColumnLineage)
+            .filter(ColumnLineage.target_id.in_([c.id for c in columns]))
             .all()
         )
         assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
@@ -129,7 +125,7 @@ def test_basic_column_graph(save_catalog):
 
 @pytest.fixture(scope="module")
 def get_graph(save_catalog, parse_queries_fixture):
-    file_catalog, catalog = save_catalog
+    catalog = save_catalog
     dml_queries = visit_dml_queries(catalog, parse_queries_fixture)
 
     graph = create_graph(catalog, dml_queries)
@@ -252,9 +248,7 @@ def test_column_sub_graph(get_graph):
     graph, catalog = get_graph
 
     table = catalog.get_table(
-        database_name="test",
-        schema_name="default",
-        table_name="page_lookup_nonredirect",
+        source_name="test", schema_name="default", table_name="page_lookup_nonredirect",
     )
     sub_graph = graph.sub_graphs(table)
 
