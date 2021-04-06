@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import List
 
 from dbcat.catalog import Catalog
+from dbcat.catalog.models import JobExecutionStatus
 
 from data_lineage.graph import DbGraph
 from data_lineage.log_mixin import LogMixin
@@ -37,12 +39,15 @@ def visit_dml_queries(catalog: Catalog, parsed_list: List[Parsed]) -> List[DmlVi
 def create_graph(catalog: Catalog, visited_queries: List[DmlVisitor]) -> DbGraph:
     logger = LogMixin()
     job_ids = set()
-    with catalog:
-        for query in visited_queries:
-            for source, target in zip(query.source_columns, query.target_columns):
-                edge = catalog.add_column_lineage(source, target, query.name, {})
-                job_ids.add(query.name)
-                logger.logger.debug("Added {}".format(edge))
+    for query in visited_queries:
+        job = catalog.add_job(query.name, {})
+        job_execution = catalog.add_job_execution(
+            job, datetime.now(), datetime.now(), JobExecutionStatus.SUCCESS
+        )
+        for source, target in zip(query.source_columns, query.target_columns):
+            edge = catalog.add_column_lineage(source, target, job_execution.id, {})
+            job_ids.add(job.id)
+            logger.logger.debug("Added {}".format(edge))
 
     graph = DbGraph(catalog, job_ids)
     graph.load()
