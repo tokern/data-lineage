@@ -98,25 +98,22 @@ class File:
         with open(self.path, "r") as file:
             content = json.load(file)
 
-        with self._catalog:
-            source = self._catalog.add_source(
-                name=content["name"], type=content["type"]
-            )
-            for s in content["schemata"]:
-                schema = self._catalog.add_schema(s["name"], source=source)
+        source = self._catalog.add_source(name=content["name"], type=content["type"])
+        for s in content["schemata"]:
+            schema = self._catalog.add_schema(s["name"], source=source)
 
-                for t in s["tables"]:
-                    table = self._catalog.add_table(t["name"], schema)
+            for t in s["tables"]:
+                table = self._catalog.add_table(t["name"], schema)
 
-                    index = 0
-                    for c in t["columns"]:
-                        self._catalog.add_column(
-                            column_name=c["name"],
-                            type=c["type"],
-                            sort_order=index,
-                            table=table,
-                        )
-                        index += 1
+                index = 0
+                for c in t["columns"]:
+                    self._catalog.add_column(
+                        column_name=c["name"],
+                        type=c["type"],
+                        sort_order=index,
+                        table=table,
+                    )
+                    index += 1
 
 
 @pytest.fixture(scope="session")
@@ -125,6 +122,6 @@ def save_catalog(open_catalog_connection):
     scanner = File("test", "test/catalog.json", catalog)
     scanner.scan()
     yield catalog
-    with closing(catalog.session) as session:
-        [session.delete(db) for db in session.query(CatSource).all()]
-        session.commit()
+    session = catalog.scoped_session
+    [session.delete(db) for db in session.query(CatSource).all()]
+    session.commit()

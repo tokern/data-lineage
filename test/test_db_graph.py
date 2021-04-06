@@ -1,5 +1,4 @@
 import logging
-from contextlib import closing
 
 import pytest
 from dbcat.catalog import ColumnLineage
@@ -64,11 +63,11 @@ def test_no_insert_column_graph(save_catalog):
         (edge[0].fqdn, edge[1].fqdn) for edge in list(edges(graph.graph))
     ] == expected_edges
 
-    with closing(catalog.session) as session:
-        all_edges = session.query(ColumnLineage).all()
-        assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
-            expected_edges
-        )
+    session = catalog.scoped_session
+    all_edges = session.query(ColumnLineage).all()
+    assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
+        expected_edges
+    )
 
 
 def test_basic_column_graph(save_catalog):
@@ -112,15 +111,16 @@ def test_basic_column_graph(save_catalog):
     )
 
     assert len(columns) == 2
-    with closing(catalog.session) as session:
-        all_edges = (
-            session.query(ColumnLineage)
-            .filter(ColumnLineage.target_id.in_([c.id for c in columns]))
-            .all()
-        )
-        assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
-            expected_edges
-        )
+    session = catalog.scoped_session
+
+    all_edges = (
+        session.query(ColumnLineage)
+        .filter(ColumnLineage.target_id.in_([c.id for c in columns]))
+        .all()
+    )
+    assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
+        expected_edges
+    )
 
 
 @pytest.fixture(scope="module")
