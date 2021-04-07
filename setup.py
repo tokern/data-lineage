@@ -67,7 +67,7 @@ setup(
         "dash",
         "click",
         "pyyaml",
-        "dbcat>=0.3.2",
+        "dbcat>=0.4.0",
     ],
     extra_requires=[],
     dependency_links=[],
