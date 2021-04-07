@@ -69,12 +69,16 @@ jobs:
           name: install dependencies
           command: |
             sudo pip install pipenv
-            pipenv install --dev -e .
+            pipenv sync --dev
 
       - save_cache:
           key: deps-{{ checksum "Pipfile.lock" }}-{{ .Environment.PYVERSION }}
           paths:
             - ".venv"
+
+      - run:
+          name: install data-lineage
+          command: pipenv run python setup.py develop
 
       # run tests!
       - run:
