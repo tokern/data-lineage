@@ -10,11 +10,10 @@ python_version = "3.8"
 pglast = "*"
 inflection = "*"
 networkx = "*"
-plotly = "*"
-dash = "*"
 click = "*"
 PyYAML = "*"
-dbcat = ">=0.4.0"
+dbcat = ">=0.5.0"
+gunicorn = "*"
 
 [dev-packages]
 black = "==19.10b0"

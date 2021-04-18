@@ -1,8 +1,8 @@
 import logging
 
 import inflection
+from dbcat.log_mixin import LogMixin
 
-from data_lineage.log_mixin import LogMixin
 from data_lineage.parser.node import (
     AcceptingList,
     AcceptingNode,

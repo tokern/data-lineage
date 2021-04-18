@@ -1,12 +1,10 @@
 import logging
 
 import click
-import yaml
-from dbcat.catalog import Catalog
+from dbcat.log_mixin import LogMixin
 
 from data_lineage import __version__
-from data_lineage.log_mixin import LogMixin
-from data_lineage.server import Server
+from data_lineage.server import run_server
 
 
 @click.group()
@@ -94,21 +92,9 @@ def init(obj):
 
 
 @main.command("runserver", short_help="Start the data lineage server")
-@click.option("--port", help="Port to listen to", default=8050, type=int)
 @click.pass_obj
-def runserver(obj, port):
-    logger = LogMixin()
-    with open(obj, "r") as file:
-        config = yaml.load(file, Loader=yaml.FullLoader)
-
-    logger.logger.debug("Load config file: {}".format(obj))
-    logger.logger.debug(config)
-    catalog = Catalog(**config["catalog"])
-
-    #    elif config.snowflake is not None:
-    #        source = Snowflake(config.file)
-    server = Server(port, catalog)
-    server.run_server()
+def runserver(obj):
+    run_server(obj)
 
 
 if __name__ == "__main__":

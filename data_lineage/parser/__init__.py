@@ -3,9 +3,9 @@ from typing import List
 
 from dbcat.catalog import Catalog
 from dbcat.catalog.models import JobExecutionStatus
+from dbcat.log_mixin import LogMixin
 
 from data_lineage.graph import DbGraph
-from data_lineage.log_mixin import LogMixin
 from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     DmlVisitor,
@@ -22,9 +22,9 @@ def parse_queries(queries: List[str]) -> List[Parsed]:
 def visit_dml_queries(catalog: Catalog, parsed_list: List[Parsed]) -> List[DmlVisitor]:
     queries = []
     for parsed in parsed_list:
-        select_source_visitor = SelectSourceVisitor(parsed.name)
-        select_into_visitor = SelectIntoVisitor(parsed.name)
-        copy_from_visitor = CopyFromVisitor(parsed.name)
+        select_source_visitor: DmlVisitor = SelectSourceVisitor(parsed.name)
+        select_into_visitor: DmlVisitor = SelectIntoVisitor(parsed.name)
+        copy_from_visitor: DmlVisitor = CopyFromVisitor(parsed.name)
 
         for visitor in [select_source_visitor, select_into_visitor, copy_from_visitor]:
             parsed.node.accept(visitor)
