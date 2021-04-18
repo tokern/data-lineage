@@ -5,7 +5,7 @@ import yaml
 from dbcat import Catalog, catalog_connection
 from dbcat.catalog import CatSource
 
-from data_lineage.parser import parse_queries
+from data_lineage.parser import parse
 
 
 @pytest.fixture(scope="session")
@@ -20,7 +20,7 @@ def load_queries():
 
 @pytest.fixture(scope="session")
 def parse_queries_fixture(load_queries):
-    parsed = parse_queries(load_queries)
+    parsed = [parse(sql=query["query"], name=query["name"]) for query in load_queries]
     yield parsed
 
 
