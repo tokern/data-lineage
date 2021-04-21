@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Dict, Optional
 
-import yaml
+import gunicorn.app.base
 from dbcat import Catalog
 from dbcat import __version__ as dbcat_version
 from dbcat.catalog import CatColumn
@@ -94,15 +94,29 @@ def resource_not_found(error):
     return jsonify(error=str(error)), 404
 
 
-def run_server(catalog_path: str):
+class Server(gunicorn.app.base.BaseApplication):
+    def __init__(self, app, options=None):
+        self.options = options or {}
+        self.application = app
+        super().__init__()
+
+    def load_config(self):
+        config = {
+            key: value
+            for key, value in self.options.items()
+            if key in self.cfg.settings and value is not None
+        }
+        for key, value in config.items():
+            self.cfg.set(key.lower(), value)
+
+    def load(self):
+        return self.application
+
+
+def run_server(catalog_options: Dict[str, str], options: Dict[str, str]):
     global _CATALOG
 
-    with open(catalog_path, "r") as file:
-        config = yaml.load(file, Loader=yaml.FullLoader)
-
     logger = LogMixin()
-
-    logger.logger.debug("Load config file: {}".format(catalog_path))
-    logger.logger.debug(config)
-    _CATALOG = Catalog(**config["catalog"])
-    return app
+    logger.logger.debug(catalog_options)
+    _CATALOG = Catalog(type="postgresql", **catalog_options)
+    Server(app=app, options=options).run()

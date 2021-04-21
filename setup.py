@@ -66,6 +66,8 @@ setup(
         "click",
         "pyyaml",
         "dbcat>=0.5.0",
+        "gunicorn",
+        "flask",
     ],
     extra_requires=[],
     dependency_links=[],
