@@ -1,26 +1,59 @@
 import logging
 
 import click
-from dbcat.log_mixin import LogMixin
 
 from data_lineage import __version__
 from data_lineage.server import run_server
 
 
-@click.group()
+@click.command()
 @click.version_option(__version__)
 @click.option("-l", "--log-level", help="Logging Level", default="INFO")
 @click.option(
-    "-c",
-    "--config",
-    help="Path to config file",
+    "--catalog-user", help="Database user name", envvar="CATALOG_USER", required=True
+)
+@click.option(
+    "--catalog-password",
+    help="Database Password",
+    envvar="CATALOG_PASSWORD",
     required=True,
-    type=click.Path(dir_okay=False, writable=True, resolve_path=True),
+)
+@click.option(
+    "--catalog-host", help="Database Host", envvar="CATALOG_HOST", default="localhost"
+)
+@click.option(
+    "--catalog-port", help="Database Password", envvar="CATALOG_PORT", default=5432
+)
+@click.option(
+    "--catalog-db", help="Postgres Database", envvar="CATALOG_PORT", default="tokern"
+)
+@click.option(
+    "--server-address",
+    help="The socket to bind to",
+    envvar="SERVER_ADDRESS",
+    default="127.0.0.1:4142",
 )
 @click.pass_context
-def main(ctx, log_level, config):
+def main(
+    ctx,
+    log_level,
+    catalog_user,
+    catalog_password,
+    catalog_host,
+    catalog_port,
+    catalog_db,
+    server_address,
+):
     logging.basicConfig(level=getattr(logging, log_level.upper()))
-    ctx.obj = config
+    catalog = {
+        "user": catalog_user,
+        "password": catalog_password,
+        "host": catalog_host,
+        "port": catalog_port,
+        "database": catalog_db,
+    }
+    options = {"bind": server_address}
+    run_server(catalog, options)
 
 
 config_template = """
@@ -80,21 +113,6 @@ connections:
     role: db_role
     warehouse: db_warehouse
 """
-
-
-@main.command("init", short_help="Initialize config file")
-@click.pass_obj
-def init(obj):
-    with open(obj, "w") as f:
-        f.write(config_template)
-    logger = LogMixin()
-    logger.logger.info("Created a configuration file at {}".format(obj))
-
-
-@main.command("runserver", short_help="Start the data lineage server")
-@click.pass_obj
-def runserver(obj):
-    run_server(obj)
 
 
 if __name__ == "__main__":
