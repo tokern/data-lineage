@@ -103,7 +103,7 @@ jobs:
     environment:
       PYVERSION: "3.8.1"
     docker:
-      - image: tokern/python:3.7.5-buster
+      - image: tokern/python:3.8.3-buster
         environment:
           PYVERSION: "3.8.1"
     steps:
