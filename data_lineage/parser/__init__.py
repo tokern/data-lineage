@@ -4,6 +4,7 @@ from typing import List
 from dbcat.catalog import Catalog
 from dbcat.catalog.models import JobExecutionStatus
 from dbcat.log_mixin import LogMixin
+from pglast.parser import ParseError
 
 from data_lineage.graph import DbGraph
 from data_lineage.parser.dml_visitor import (
@@ -16,7 +17,16 @@ from data_lineage.parser.node import Parsed, parse
 
 
 def parse_queries(queries: List[str]) -> List[Parsed]:
-    return [parse(query) for query in queries]
+    parsed: List[Parsed] = []
+    logger = LogMixin().logger
+
+    for query in queries:
+        try:
+            parsed.append(parse(query))
+        except ParseError as e:
+            logger.warn("Syntax error while parsing {}.\n{}".format(query, e))
+
+    return parsed
 
 
 def visit_dml_queries(catalog: Catalog, parsed_list: List[Parsed]) -> List[DmlVisitor]:

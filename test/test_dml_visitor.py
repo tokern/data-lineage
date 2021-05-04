@@ -1,6 +1,6 @@
 import pytest
 
-from data_lineage.parser import parse
+from data_lineage.parser import parse, parse_queries
 from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     SelectIntoVisitor,
@@ -142,3 +142,15 @@ def test_insert_cols():
     assert visitor.target_table == (None, "page_lookup_nonredirect")
     assert len(visitor.source_columns) == 2
     assert visitor.source_tables == [(None, "page")]
+
+
+def test_syntax_errors():
+    queries = [
+        "INSERT INTO page_lookup_nonredirect(page_id, latest) SELECT page.page_id, page.page_latest FROM page",
+        "select a from table(b)",
+        "INSERT INTO page_lookup_nonredirect SELECT page.page_id, page.page_latest FROM page",
+    ]
+
+    parsed = parse_queries(queries)
+
+    assert len(parsed) == 2
