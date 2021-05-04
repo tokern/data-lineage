@@ -146,7 +146,7 @@ jobs:
           name: install git release utilities
           command: |
             go get github.com/aktau/github-release
-            go get -u github.com/git-chglog/git-chglog/cmd/git-chglog
+            GO111MODULE=on go get -u github.com/git-chglog/git-chglog/cmd/git-chglog
 
       - run:
           name: release
