@@ -18,7 +18,7 @@ Tokern Lineage helps you browse column-level data lineage
 
 * Demo of Tokern Lineage App
 
-<video src="https://tokern.io/videos/data-lineage-reduced.webm" controls preload></video>
+![data-lineage-reduced](https://user-images.githubusercontent.com/1638298/118259018-39263500-b4ce-11eb-8a09-e2abbb2877e7.gif)
 
 * Checkout an [example data lineage notebook](http://tokern.io/docs/data-lineage/example/).
 
