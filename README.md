@@ -1,45 +1,62 @@
+# Tokern Lineage Engine
+
 [![CircleCI](https://circleci.com/gh/tokern/data-lineage.svg?style=svg)](https://circleci.com/gh/tokern/data-lineage)
 [![codecov](https://codecov.io/gh/tokern/data-lineage/branch/master/graph/badge.svg)](https://codecov.io/gh/tokern/data-lineage)
 [![PyPI](https://img.shields.io/pypi/v/data-lineage.svg)](https://pypi.python.org/pypi/data-lineage)
 [![image](https://img.shields.io/pypi/l/data-lineage.svg)](https://pypi.org/project/data-lineage/)
 [![image](https://img.shields.io/pypi/pyversions/data-lineage.svg)](https://pypi.org/project/data-lineage/)
 
-# Data Lineage for Databases and Data Lakes
 
-data-lineage is an open source application to query and visualize data lineage in databases, 
-data warehouses and data lakes in AWS and GCP.
+Tokern Lineage Engine is _fast_ and _easy to use_ application to collect, visualize and analyze 
+column-level data lineage in databases, data warehouses and data lakes in AWS and GCP.
 
-data-lineage's goal is to be _fast_, _simple setup_ and _allow analysis_ of the lineage. To achieve these goals, data lineage has the following features :
+Tokern Lineage helps you browse column-level data lineage 
+* visually using [kedro-viz](https://github.com/quantumblacklabs/kedro-viz)
+* analyze lineage graphs programmatically using the powerful [networkx graph library](https://networkx.org/)
 
-1. **Generate data lineage from query history.** Most databases maintain query history for a few days. Therefore the setup costs of an infrastructure to capture and store metadata is minimal. 
-2. **Use networkx graph library to create a DAG of the lineage.** Networkx graphs provide programmatic access to data lineage providing rich opportunities to analyze data lineage.
-3. **Integrate with Jupyter Notebooks.** Jupyter Notebooks provide an excellent IDE to generate, manipulate and analyze data lineage graphs. 
-4. **Use Plotly to visualize the graph with rich annotations.** Plotly provides a number of features to provide rich graphs with tool tips, color coding and weights based on different attributes of the graph.
+## Resources
 
-Checkout an [example data lineage notebook](http://tokern.io/docs/data-lineage/example/).
+* Demo of Tokern Lineage App
 
-## Use Cases
+![data-lineage](https://user-images.githubusercontent.com/1638298/118261607-688a7100-b4d1-11eb-923a-5d2407d6bd8d.gif)
 
-Data Lineage enables the following use cases:
+* Checkout an [example data lineage notebook](http://tokern.io/docs/data-lineage/example/).
 
-* Business Rules Verification
-* Change Impact Analysis
-* Data Quality Verification
-
-Check out [the post on using data lineage for cost control](https://tokern.io/blog/data-lineage-on-redshift/) for an 
+* Check out [the post on using data lineage for cost control](https://tokern.io/blog/data-lineage-on-redshift/) for an 
 example of how data lineage can be used in production.
 
 ## Quick Start
-```shell script
-# Install packages
-pip install data-lineage
-pip install jupyter
 
-jupyter notebook
+Install a demo of using Docker and Docker Compose
 
-# Checkout example notebook: http://tokern.io/docs/data-lineage/example/ 
+Download the docker-compose file from Github repository.
 
-```
+
+    # in a new directory run
+    wget https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose-demodb/docker-compose.yml
+    # or run
+    curl https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose-demodb/docker-compose.yml -o docker-compose.yml
+
+
+Run docker-compose
+   
+
+    docker-compose up -d
+
+
+Check that the containers are running.
+
+
+    docker ps
+    CONTAINER ID   IMAGE                                    CREATED        STATUS       PORTS                    NAMES
+    3f4e77845b81   tokern/data-lineage-viz:latest   ...   4 hours ago    Up 4 hours   0.0.0.0:8000->80/tcp     tokern-data-lineage-visualizer
+    1e1ce4efd792   tokern/data-lineage:latest       ...   5 days ago     Up 5 days                             tokern-data-lineage
+    38be15bedd39   tokern/demodb:latest             ...   2 weeks ago    Up 2 weeks                            tokern-demodb
+
+Try out Tokern Lineage App
+
+Head to `http://localhost:8000/` to open the Tokern Lineage app
+
 
 ## Supported Technologies
 
@@ -59,14 +76,3 @@ For advanced usage, please refer to [data-lineage documentation](https://tokern.
 ## Survey
 
 Please take this [survey](https://forms.gle/p2oEQBJnpEguhrp3A) if you are a user or considering using data-lineage. Responses will help us prioritize features better. 
-
-## Developer Setup
-```shell script
-# Install dependencies
-pipenv install --dev
-
-# Setup pre-commit and pre-push hooks
-pipenv run pre-commit install -t pre-commit
-pipenv run pre-commit install -t pre-push
-```
-
