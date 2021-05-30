@@ -14,7 +14,7 @@ click = "*"
 PyYAML = "*"
 dbcat = ">=0.5.0"
 gunicorn = "*"
-flask = "*"
+flask = "~=1.1"
 
 [dev-packages]
 black = "==19.10b0"
@@ -28,7 +28,4 @@ wheel = "*"
 pipenv-setup = "*"
 mypy = "*"
 jupyter = "*"
-
-[dev-packages.e1839a8]
-path = "."
-editable = true
+e1839a8 = {path = ".", editable = true}
