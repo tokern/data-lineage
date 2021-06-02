@@ -5,7 +5,9 @@ import yaml
 from dbcat import Catalog, catalog_connection
 from dbcat.catalog import CatSource
 
+from data_lineage.data_lineage import RestCatalog
 from data_lineage.parser import parse
+from data_lineage.server import create_server
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +28,6 @@ def parse_queries_fixture(load_queries):
 
 postgres_conf = """
 catalog:
-  type: postgresql
   user: piiuser
   password: p11secret
   host: 127.0.0.1
@@ -67,7 +68,6 @@ def setup_catalog(root_connection):
 
 catalog_conf = """
 catalog:
-  type: postgresql
   user: catalog_user
   password: catal0g_passw0rd
   host: 127.0.0.1
@@ -98,7 +98,9 @@ class File:
         with open(self.path, "r") as file:
             content = json.load(file)
 
-        source = self._catalog.add_source(name=content["name"], type=content["type"])
+        source = self._catalog.add_source(
+            name=content["name"], source_type=content["source_type"]
+        )
         for s in content["schemata"]:
             schema = self._catalog.add_schema(s["name"], source=source)
 
@@ -109,7 +111,7 @@ class File:
                 for c in t["columns"]:
                     self._catalog.add_column(
                         column_name=c["name"],
-                        type=c["type"],
+                        data_type=c["data_type"],
                         sort_order=index,
                         table=table,
                     )
@@ -125,3 +127,16 @@ def save_catalog(open_catalog_connection):
     session = catalog.scoped_session
     [session.delete(db) for db in session.query(CatSource).all()]
     session.commit()
+
+
+@pytest.fixture(scope="session")
+def app(setup_catalog):
+    config = yaml.safe_load(catalog_conf)
+    app, catalog = create_server(config["catalog"], {}, is_production=False)
+    yield app
+    catalog.close()
+
+
+@pytest.fixture(scope="session")
+def rest_catalog(live_server, save_catalog):
+    yield RestCatalog("http://{}:{}".format(live_server.host, live_server.port))

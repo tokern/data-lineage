@@ -1,6 +1,6 @@
 {
   "name": "test",
-  "type": "json",
+  "source_type": "json",
   "schemata": [
     {
       "name": "default",
@@ -10,15 +10,15 @@
           "columns": [
             {
               "name": "group",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "page_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "views",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             }
           ]
         },
@@ -27,15 +27,15 @@
           "columns": [
             {
               "name":  "page_id",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name":  "page_latest",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "page_title",
-              "type": "STRING"
+              "data_type": "STRING"
             }
           ]
         },
@@ -44,11 +44,11 @@
           "columns": [
             {
               "name": "rd_from",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "page_title",
-              "type": "STRING"
+              "data_type": "STRING"
             }
 
           ]
@@ -58,23 +58,23 @@
           "columns": [
             {
               "name": "redirect_id",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "redirect_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "true_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "page_id",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "page_version",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             }
           ]
         },
@@ -83,23 +83,23 @@
           "columns": [
             {
              "name": "redirect_id",
-             "type": "BIGINT"
+             "data_type": "BIGINT"
             },
             {
               "name": "redirect_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "true_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "page_id",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "page_version",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             }
           ]
         },
@@ -108,23 +108,23 @@
           "columns": [
             {
               "name": "redirect_id",
-              "type": "bigint"
+              "data_type": "bigint"
             },
             {
               "name": "redirect_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "true_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "page_id",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "page_version",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             }
           ]
         },
@@ -133,19 +133,19 @@
           "columns": [
             {
               "name": "group",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "page_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "views",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "bytes_sent",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             }
           ]
         },
@@ -154,23 +154,23 @@
           "columns": [
             {
               "name": "page_id",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "page_title",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "page_url",
-              "type": "STRING"
+              "data_type": "STRING"
             },
             {
               "name": "views",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             },
             {
               "name": "bytes_sent",
-              "type": "BIGINT"
+              "data_type": "BIGINT"
             }
           ]
         }

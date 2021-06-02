@@ -7,14 +7,17 @@ verify_ssl = true
 python_version = "3.8"
 
 [packages]
-pglast = "*"
+pglast = "==1.18"
 inflection = "*"
 networkx = "*"
 click = "*"
 PyYAML = "*"
-dbcat = ">=0.5.0"
+dbcat = ">=0.5.1"
 gunicorn = "*"
 flask = "~=1.1"
+flask-restless-ng = "*"
+requests = "*"
+furl = "*"
 
 [dev-packages]
 black = "==19.10b0"
@@ -29,3 +32,4 @@ pipenv-setup = "*"
 mypy = "*"
 jupyter = "*"
 e1839a8 = {path = ".", editable = true}
+pytest-flask = "*"

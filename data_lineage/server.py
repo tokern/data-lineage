@@ -1,10 +1,11 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
+import flask_restless
 import gunicorn.app.base
 from dbcat import Catalog
 from dbcat import __version__ as dbcat_version
 from dbcat.catalog import CatColumn
-from dbcat.catalog.models import Job
+from dbcat.catalog.models import CatSchema, CatSource, CatTable, Job, JobExecution
 from dbcat.log_mixin import LogMixin
 from flask import Flask, abort, jsonify
 
@@ -113,10 +114,32 @@ class Server(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-def run_server(catalog_options: Dict[str, str], options: Dict[str, str]):
+def create_server(
+    catalog_options: Dict[str, str], options: Dict[str, str], is_production=True
+) -> Tuple[Any, Catalog]:
     global _CATALOG
 
     logger = LogMixin()
     logger.logger.debug(catalog_options)
-    _CATALOG = Catalog(type="postgresql", **catalog_options)
-    Server(app=app, options=options).run()
+    _CATALOG = Catalog(**catalog_options)
+
+    # Create CRUD APIs
+    methods = ["DELETE", "GET", "PATCH", "POST"]
+    api_manager = flask_restless.APIManager(app, _CATALOG.scoped_session)
+    api_manager.create_api(CatSource, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(CatSchema, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(CatTable, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(CatColumn, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(Job, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(JobExecution, methods=methods, url_prefix="/api/v1/catalog")
+
+    for rule in app.url_map.iter_rules():
+        rule_methods = ",".join(rule.methods)
+        logger.logger.debug(
+            "{:50s} {:20s} {}".format(rule.endpoint, rule_methods, rule)
+        )
+
+    if is_production:
+        return Server(app=app, options=options), _CATALOG
+    else:
+        return app, _CATALOG
