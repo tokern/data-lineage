@@ -3,7 +3,7 @@ import logging
 import click
 
 from data_lineage import __version__
-from data_lineage.server import run_server
+from data_lineage.server import create_server
 
 
 @click.command()
@@ -33,6 +33,11 @@ from data_lineage.server import run_server
     envvar="SERVER_ADDRESS",
     default="127.0.0.1:4142",
 )
+@click.option(
+    "--is-production/--not-production",
+    help="Run server in development mode",
+    default=True,
+)
 @click.pass_context
 def main(
     ctx,
@@ -43,6 +48,7 @@ def main(
     catalog_port,
     catalog_db,
     server_address,
+    is_production,
 ):
     logging.basicConfig(level=getattr(logging, log_level.upper()))
     catalog = {
@@ -53,66 +59,8 @@ def main(
         "database": catalog_db,
     }
     options = {"bind": server_address}
-    run_server(catalog, options)
-
-
-config_template = """
-# Instructions for configuring Tokern Data Lineage Server.
-# This configuration file is in YAML format.
-
-# This configuration file is in YAML format.
-
-# Copy paste the section of the relevant database and fill in the values.
-
-# The configuration file consists of
-# - a catalog sink where metadata is stored.
-# - a list of database connections to scan.
-
-
-# The following catalog types are supported:
-# - Files
-# - Postgres
-# - MySQL
-# Choose one of them
-
-catalog:
-  type: postgres
-  user: db_user
-  password: db_password
-  host: db_host
-  port: db_port
-
-connections:
-  - name: pg
-    type: postgres
-    database: db_database
-    username: db_user
-    password: db_password
-    port: db_port
-    uri: db_uri
-  - name: mys
-    type: mysql
-    database: db_database
-    username: db_user
-    password: db_password
-    port: db_port
-    uri: db_uri
-  - name: bq
-    type: bigquery
-    key_path: db_key_path
-    project_credentials:  db_creds
-    project_id: db_project_id
-  - name: gl
-    type: glue
-  - name: sf
-    type: snowflake
-    database: db_database
-    username: db_user
-    password: db_password
-    account: db_account
-    role: db_role
-    warehouse: db_warehouse
-"""
+    app, catalog = create_server(catalog, options, is_production=is_production)
+    app.run()
 
 
 if __name__ == "__main__":
