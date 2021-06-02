@@ -1,12 +1,13 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
+import flask_restless
 import gunicorn.app.base
 from dbcat import Catalog
 from dbcat import __version__ as dbcat_version
 from dbcat.catalog import CatColumn
-from dbcat.catalog.models import Job
+from dbcat.catalog.models import CatSchema, CatSource, CatTable, Job, JobExecution
 from dbcat.log_mixin import LogMixin
-from flask import Flask, abort, jsonify
+from flask import Flask, jsonify
 
 from . import __version__ as data_lineage_version
 
@@ -66,28 +67,6 @@ def nodes_json():
     return jsonify(_generate_graph_response())
 
 
-@app.route("/api/nodes/<string:node_id>")
-def nodes_metadata(node_id: str):
-    """Serve the metadata for node and dataset."""
-    type, type_id = node_id.split(":")
-
-    assert _CATALOG is not None
-
-    if type == "column":
-        column = _CATALOG.get_column_by_id(type_id)
-        return jsonify(
-            {
-                "fqdn": ".".join(column.fqdn),
-                "type": column.type,
-                "sort_order": column.sort_order,
-            }
-        )
-    elif type == "task":
-        job = _CATALOG.get_job_by_id(type_id)
-        return jsonify({"name": job.name})
-    abort(404, description="Invalid Node ID.")
-
-
 @app.errorhandler(404)
 def resource_not_found(error):
     """Returns HTTP 404 on resource not found."""
@@ -113,10 +92,32 @@ class Server(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-def run_server(catalog_options: Dict[str, str], options: Dict[str, str]):
+def create_server(
+    catalog_options: Dict[str, str], options: Dict[str, str], is_production=True
+) -> Tuple[Any, Catalog]:
     global _CATALOG
 
     logger = LogMixin()
     logger.logger.debug(catalog_options)
-    _CATALOG = Catalog(type="postgresql", **catalog_options)
-    Server(app=app, options=options).run()
+    _CATALOG = Catalog(**catalog_options)
+
+    # Create CRUD APIs
+    methods = ["DELETE", "GET", "PATCH", "POST"]
+    api_manager = flask_restless.APIManager(app, _CATALOG.scoped_session)
+    api_manager.create_api(CatSource, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(CatSchema, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(CatTable, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(CatColumn, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(Job, methods=methods, url_prefix="/api/v1/catalog")
+    api_manager.create_api(JobExecution, methods=methods, url_prefix="/api/v1/catalog")
+
+    for rule in app.url_map.iter_rules():
+        rule_methods = ",".join(rule.methods)
+        logger.logger.debug(
+            "{:50s} {:20s} {}".format(rule.endpoint, rule_methods, rule)
+        )
+
+    if is_production:
+        return Server(app=app, options=options), _CATALOG
+    else:
+        return app, _CATALOG

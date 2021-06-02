@@ -76,7 +76,7 @@ ALTER SEQUENCE public.column_lineage_id_seq OWNED BY public.column_lineage.id;
 CREATE TABLE public.columns (
     id integer NOT NULL,
     name character varying,
-    type character varying,
+    data_type character varying,
     sort_order integer,
     table_id integer
 );
@@ -219,7 +219,7 @@ ALTER SEQUENCE public.schemata_id_seq OWNED BY public.schemata.id;
 
 CREATE TABLE public.sources (
     id integer NOT NULL,
-    type character varying,
+    source_type character varying,
     name character varying,
     dialect character varying,
     uri character varying,
@@ -380,7 +380,7 @@ COPY public.column_lineage (id, context, source_id, target_id, job_execution_id)
 -- Data for Name: columns; Type: TABLE DATA; Schema: public; Owner: catalog_user
 --
 
-COPY public.columns (id, name, type, sort_order, table_id) FROM stdin;
+COPY public.columns (id, name, data_type, sort_order, table_id) FROM stdin;
 1	group	STRING	0	1
 2	page_title	STRING	1	1
 3	views	BIGINT	2	1
@@ -455,7 +455,7 @@ COPY public.schemata (id, name, source_id) FROM stdin;
 -- Data for Name: sources; Type: TABLE DATA; Schema: public; Owner: catalog_user
 --
 
-COPY public.sources (id, type, name, dialect, uri, port, username, password, database, instance, cluster, project_id, project_credentials, page_size, filter_key, included_tables_regex, key_path, account, role, warehouse) FROM stdin;
+COPY public.sources (id, source_type, name, dialect, uri, port, username, password, database, instance, cluster, project_id, project_credentials, page_size, filter_key, included_tables_regex, key_path, account, role, warehouse) FROM stdin;
 1	json	test	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
 \.
 
