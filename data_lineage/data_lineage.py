@@ -1,10 +1,10 @@
 import json
+import logging
 from collections import namedtuple
 from typing import Any, Dict
 
 import requests
 from dbcat.catalog import Catalog
-from dbcat.log_mixin import LogMixin
 from furl import furl
 
 from data_lineage.graph import DbGraph
@@ -16,7 +16,7 @@ def load_graph(catalog: Catalog) -> DbGraph:
     return graph
 
 
-class RestCatalog(LogMixin):
+class RestCatalog:
     def __init__(self, url: str):
         self._base_url = furl(url) / "api/v1/catalog"
         self._session = requests.Session()
@@ -27,7 +27,7 @@ class RestCatalog(LogMixin):
         built_url = self._base_url
         for url in urls:
             built_url = furl(built_url) / url
-        self.logger.debug(built_url)
+        logging.debug(built_url)
         return built_url
 
     def _iterate(self, payload, clazz):

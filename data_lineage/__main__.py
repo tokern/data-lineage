@@ -38,9 +38,7 @@ from data_lineage.server import create_server
     help="Run server in development mode",
     default=True,
 )
-@click.pass_context
 def main(
-    ctx,
     log_level,
     catalog_user,
     catalog_password,
@@ -60,7 +58,10 @@ def main(
     }
     options = {"bind": server_address}
     app, catalog = create_server(catalog, options, is_production=is_production)
-    app.run()
+    if is_production:
+        app.run()
+    else:
+        app.run(debug=True)
 
 
 if __name__ == "__main__":

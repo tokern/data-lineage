@@ -1,9 +1,9 @@
+import logging
 from datetime import datetime
 from typing import List
 
 from dbcat.catalog import Catalog
 from dbcat.catalog.models import JobExecutionStatus
-from dbcat.log_mixin import LogMixin
 from pglast.parser import ParseError
 
 from data_lineage.graph import DbGraph
@@ -18,13 +18,12 @@ from data_lineage.parser.node import Parsed, parse
 
 def parse_queries(queries: List[str]) -> List[Parsed]:
     parsed: List[Parsed] = []
-    logger = LogMixin().logger
 
     for query in queries:
         try:
             parsed.append(parse(query))
         except ParseError as e:
-            logger.warn("Syntax error while parsing {}.\n{}".format(query, e))
+            logging.warning("Syntax error while parsing {}.\n{}".format(query, e))
 
     return parsed
 
@@ -47,7 +46,6 @@ def visit_dml_queries(catalog: Catalog, parsed_list: List[Parsed]) -> List[DmlVi
 
 
 def create_graph(catalog: Catalog, visited_queries: List[DmlVisitor]) -> DbGraph:
-    logger = LogMixin()
     job_ids = set()
     for query in visited_queries:
         job = catalog.add_job(query.name, {})
@@ -57,7 +55,7 @@ def create_graph(catalog: Catalog, visited_queries: List[DmlVisitor]) -> DbGraph
         for source, target in zip(query.source_columns, query.target_columns):
             edge = catalog.add_column_lineage(source, target, job_execution.id, {})
             job_ids.add(job.id)
-            logger.logger.debug("Added {}".format(edge))
+            logging.debug("Added {}".format(edge))
 
     graph = DbGraph(catalog, job_ids)
     graph.load()

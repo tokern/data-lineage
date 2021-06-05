@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from dbcat.catalog import Catalog, CatColumn, CatTable
@@ -70,15 +71,13 @@ class DmlVisitor(Visitor):
         target_table_visitor = RangeVarVisitor()
         target_table_visitor.visit(self._target_table)
 
-        self.logger.debug(
-            "Searching for: {}".format(target_table_visitor.search_string)
-        )
+        logging.debug("Searching for: {}".format(target_table_visitor.search_string))
         self._target_table = catalog.search_table(**target_table_visitor.search_string)
-        self.logger.debug("Bound target table: {}".format(self._target_table))
+        logging.debug("Bound target table: {}".format(self._target_table))
 
         if len(self._target_columns) == 0:
             self._target_columns = catalog.get_columns_for_table(self._target_table)
-            self.logger.debug("Bound all columns in {}".format(self._target_table))
+            logging.debug("Bound all columns in {}".format(self._target_table))
         else:
             bound_cols = catalog.get_columns_for_table(
                 self._target_table, column_names=self._target_columns
@@ -96,7 +95,7 @@ class DmlVisitor(Visitor):
                         raise RuntimeError("'{}' column is not found".format(column))
 
             self._target_columns = bound_cols
-            self.logger.debug("Bound {} target columns".format(len(bound_cols)))
+            logging.debug("Bound {} target columns".format(len(bound_cols)))
 
         alias_map = {}
         bound_tables = []
@@ -106,10 +105,10 @@ class DmlVisitor(Visitor):
             if visitor.alias is not None:
                 alias_map[visitor.alias] = visitor.search_string
 
-            self.logger.debug("Searching for: {}".format(visitor.search_string))
+            logging.debug("Searching for: {}".format(visitor.search_string))
 
             candidate_table = catalog.search_table(**visitor.search_string)
-            self.logger.debug("Bound source table: {}".format(candidate_table))
+            logging.debug("Bound source table: {}".format(candidate_table))
             bound_tables.append(candidate_table)
 
         self._source_tables = bound_tables
@@ -122,7 +121,7 @@ class DmlVisitor(Visitor):
             else:
                 table_name = {"table_like": column_ref_visitor.name[0]}
 
-            self.logger.debug("Searching for: {}".format(table_name))
+            logging.debug("Searching for: {}".format(table_name))
             candidate_table = catalog.search_table(**table_name)
 
             bound = catalog.get_columns_for_table(
@@ -133,7 +132,7 @@ class DmlVisitor(Visitor):
             elif len(bound) > 1:
                 raise RuntimeError("Ambiguous column name. Multiple matches found")
 
-            self.logger.debug("Bound source column: {}".format(bound[0]))
+            logging.debug("Bound source column: {}".format(bound[0]))
             bound_cols.append(bound[0])
 
         self._source_columns = bound_cols

@@ -1,11 +1,8 @@
-import json
+import datetime
 
-
-def test_index(client):
-    response = client.get("/")
-    data = json.loads(response.data.decode())
-    assert response.status_code == 200
-    assert "data-lineage" in data.keys()
+import pytest
+import requests
+from dbcat.catalog.models import ColumnLineage, Job, JobExecution, JobExecutionStatus
 
 
 def test_get_sources(rest_catalog):
@@ -37,7 +34,7 @@ def test_get_columns(rest_catalog):
     for column in rest_catalog.get_columns():
         assert column.id is not None
         assert column.name is not None
-        # assert column.type is not None
+        assert column.data_type is not None
         assert column.sort_order is not None
         num += 1
 
@@ -47,22 +44,26 @@ def test_get_columns(rest_catalog):
 def test_get_source_by_id(rest_catalog):
     source = rest_catalog.get_source_by_id(1)
     assert source.name == "test"
+    assert source.fqdn == "test"
     assert source.source_type == "json"
 
 
 def test_get_schema_by_id(rest_catalog):
     schema = rest_catalog.get_schema_by_id(1)
     assert schema.name == "default"
+    assert schema.fqdn == ["test", "default"]
 
 
 def test_get_table_by_id(rest_catalog):
     table = rest_catalog.get_table_by_id(1)
     assert table.name == "pagecounts"
+    assert table.fqdn == ["test", "default", "pagecounts"]
 
 
 def test_get_column_by_id(rest_catalog):
     column = rest_catalog.get_column_by_id(1)
     assert column.name == "group"
+    assert column.fqdn == ["test", "default", "pagecounts", "group"]
 
 
 def test_get_source_by_name(rest_catalog):
@@ -184,3 +185,158 @@ def test_add_source_snowflake(rest_catalog):
     assert sf_conn.account == "db_account"
     assert sf_conn.role == "db_role"
     assert sf_conn.warehouse == "db_warehouse"
+
+
+def load_edges(catalog, expected_edges, job_execution_id):
+    column_edge_ids = []
+    for edge in expected_edges:
+        source = catalog.get_column(
+            database_name=edge[0][0],
+            schema_name=edge[0][1],
+            table_name=edge[0][2],
+            column_name=edge[0][3],
+        )
+
+        target = catalog.get_column(
+            database_name=edge[1][0],
+            schema_name=edge[1][1],
+            table_name=edge[1][2],
+            column_name=edge[1][3],
+        )
+
+        added_edge = catalog.add_column_lineage(source, target, job_execution_id, {})
+
+        column_edge_ids.append(added_edge.id)
+    return column_edge_ids
+
+
+@pytest.fixture(scope="module")
+def load_page_lookup_nonredirect_edges(save_catalog):
+    catalog = save_catalog
+
+    expected_edges = [
+        (
+            ("test", "default", "page", "page_id"),
+            ("test", "default", "page_lookup_nonredirect", "redirect_id"),
+        ),
+        (
+            ("test", "default", "page", "page_id"),
+            ("test", "default", "page_lookup_nonredirect", "page_id"),
+        ),
+        (
+            ("test", "default", "page", "page_title"),
+            ("test", "default", "page_lookup_nonredirect", "redirect_title"),
+        ),
+        (
+            ("test", "default", "page", "page_title"),
+            ("test", "default", "page_lookup_nonredirect", "true_title"),
+        ),
+        (
+            ("test", "default", "page", "page_latest"),
+            ("test", "default", "page_lookup_nonredirect", "page_version"),
+        ),
+    ]
+
+    job = catalog.add_job(
+        "insert_page_lookup_nonredirect",
+        {"sql": "insert into page_lookup_nonredirect select from page"},
+    )
+    e1 = catalog.add_job_execution(
+        job=job,
+        started_at=datetime.datetime.combine(
+            datetime.date(2021, 4, 1), datetime.time(1, 0)
+        ),
+        ended_at=datetime.datetime.combine(
+            datetime.date(2021, 4, 1), datetime.time(1, 15)
+        ),
+        status=JobExecutionStatus.SUCCESS,
+    )
+
+    executions = [e1.id]
+    name = job.name
+
+    print("Inserted job {}".format(name))
+    print("Inserted executions {}".format(",".join(str(v) for v in executions)))
+
+    column_edge_ids = load_edges(catalog, expected_edges, executions[0])
+    print("Inserted edges {}".format(",".join(str(v) for v in column_edge_ids)))
+
+    yield catalog, expected_edges
+
+    session = catalog.scoped_session
+    session.query(ColumnLineage).filter(ColumnLineage.id.in_(column_edge_ids)).delete(
+        synchronize_session=False
+    )
+    print("DELETED edges {}".format(",".join(str(v) for v in column_edge_ids)))
+    session.commit()
+
+    session.query(JobExecution).filter(JobExecution.id.in_(executions)).delete(
+        synchronize_session=False
+    )
+    print("DELETED executions {}".format(",".join(str(v) for v in executions)))
+    session.commit()
+
+    session.query(Job).filter(Job.name == name).delete(synchronize_session=False)
+    print("DELETED job {}".format(name))
+    session.commit()
+
+
+def test_api_main(live_server, load_page_lookup_nonredirect_edges):
+    response = requests.get(
+        "http://{}:{}/api/main".format(live_server.host, live_server.port)
+    )
+    graph = response.json()
+    assert len(graph["edges"]) == 62
+    assert len(graph["nodes"]) == 93
+
+    # assert response.json() == {
+    #     "edges": [
+    #         {"source": "column:4", "target": "task:1"},
+    #         {"source": "task:1", "target": "column:9"},
+    #         {"source": "column:4", "target": "task:1"},
+    #         {"source": "task:1", "target": "column:12"},
+    #         {"source": "column:6", "target": "task:1"},
+    #         {"source": "task:1", "target": "column:10"},
+    #         {"source": "column:6", "target": "task:1"},
+    #         {"source": "task:1", "target": "column:11"},
+    #         {"source": "column:5", "target": "task:1"},
+    #         {"source": "task:1", "target": "column:13"},
+    #     ],
+    #     "nodes": [
+    #         {"id": "column:4", "name": "test.default.page.page_id", "type": "data"},
+    #         {
+    #             "id": "column:9",
+    #             "name": "test.default.page_lookup_nonredirect.redirect_id",
+    #             "type": "data",
+    #         },
+    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
+    #         {"id": "column:4", "name": "test.default.page.page_id", "type": "data"},
+    #         {
+    #             "id": "column:12",
+    #             "name": "test.default.page_lookup_nonredirect.page_id",
+    #             "type": "data",
+    #         },
+    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
+    #         {"id": "column:6", "name": "test.default.page.page_title", "type": "data"},
+    #         {
+    #             "id": "column:10",
+    #             "name": "test.default.page_lookup_nonredirect.redirect_title",
+    #             "type": "data",
+    #         },
+    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
+    #         {"id": "column:6", "name": "test.default.page.page_title", "type": "data"},
+    #         {
+    #             "id": "column:11",
+    #             "name": "test.default.page_lookup_nonredirect.true_title",
+    #             "type": "data",
+    #         },
+    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
+    #         {"id": "column:5", "name": "test.default.page.page_latest", "type": "data"},
+    #         {
+    #             "id": "column:13",
+    #             "name": "test.default.page_lookup_nonredirect.page_version",
+    #             "type": "data",
+    #         },
+    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
+    #     ],
+    # }
