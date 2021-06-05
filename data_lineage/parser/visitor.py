@@ -1,7 +1,6 @@
 import logging
 
 import inflection
-from dbcat.log_mixin import LogMixin
 
 from data_lineage.parser.node import (
     AcceptingList,
@@ -11,7 +10,7 @@ from data_lineage.parser.node import (
 )
 
 
-class Visitor(LogMixin):
+class Visitor:
     def visit(self, obj):
         if obj is None:
             return None

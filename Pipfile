@@ -18,6 +18,7 @@ flask = "~=1.1"
 flask-restless-ng = "*"
 requests = "*"
 furl = "*"
+flask-restful = "*"
 
 [dev-packages]
 black = "==19.10b0"

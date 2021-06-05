@@ -1,11 +1,11 @@
+import logging
 from collections import deque
 
 import networkx as nx
 from dbcat.catalog import Catalog, CatTable
-from dbcat.log_mixin import LogMixin
 
 
-class DbGraph(LogMixin):
+class DbGraph:
     def __init__(self, catalog: Catalog, job_ids: set = None, name: str = "Lineage"):
         self._catalog = catalog
         self.name = name
@@ -48,7 +48,7 @@ class DbGraph(LogMixin):
             if node.table == table:
                 remaining_nodes.append(node)
 
-        self.logger.debug(
+        logging.debug(
             "Searched for {}. Found {} nodes".format(table, len(remaining_nodes))
         )
         processed_nodes = set()
@@ -57,16 +57,16 @@ class DbGraph(LogMixin):
             t = remaining_nodes.pop()
             if t not in processed_nodes:
                 column_dg.add_node(t)
-                self.logger.debug("Added Node: {}".format(t))
+                logging.debug("Added Node: {}".format(t))
             pred = self._graph.predecessors(t)
             for n in pred:
                 if n not in processed_nodes:
                     column_dg.add_node(n)
                     remaining_nodes.append(n)
                     processed_nodes.add(n)
-                    self.logger.debug("Processed node {}".format(n))
+                    logging.debug("Processed node {}".format(n))
                 column_dg.add_edge(n, t)
-                self.logger.debug("Added edge {} -> {}".format(n, t))
+                logging.debug("Added edge {} -> {}".format(n, t))
 
         sub_graph = DbGraph(
             catalog=self._catalog,
