@@ -1,8 +1,8 @@
 version: '3.6'
 services:
-  demodb:
-    image: tokern/demodb:latest
-    container_name: tokern-demodb
+  tokern-demo-catalog:
+    image: tokern/demo-catalog:latest
+    container_name: tokern-demo-catalog
     restart: unless-stopped
     networks:
       - tokern-internal
