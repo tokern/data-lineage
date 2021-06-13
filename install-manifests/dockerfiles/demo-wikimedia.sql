@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: filtered_pagecounts; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: filtered_pagecounts; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.filtered_pagecounts (
@@ -32,13 +32,13 @@ CREATE TABLE public.filtered_pagecounts (
 );
 
 
-ALTER TABLE public.filtered_pagecounts OWNER TO etl_dev;
+ALTER TABLE public.filtered_pagecounts OWNER TO etldev;
 
 --
--- Name: lookup; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: page_lookup; Type: TABLE; Schema: public; Owner: etldev
 --
 
-CREATE TABLE public.lookup (
+CREATE TABLE public.page_lookup (
     redirect_id bigint,
     redirect_title bigint,
     true_title character varying,
@@ -47,10 +47,10 @@ CREATE TABLE public.lookup (
 );
 
 
-ALTER TABLE public.lookup OWNER TO etl_dev;
+ALTER TABLE public.page_lookup OWNER TO etldev;
 
 --
--- Name: normalized_pagecounts; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: normalized_pagecounts; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.normalized_pagecounts (
@@ -61,23 +61,23 @@ CREATE TABLE public.normalized_pagecounts (
 );
 
 
-ALTER TABLE public.normalized_pagecounts OWNER TO etl_dev;
+ALTER TABLE public.normalized_pagecounts OWNER TO etldev;
 
 --
--- Name: page; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: page; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.page (
-    pageid bigint,
+    page_id bigint,
     page_latest bigint,
     page_title character varying
 );
 
 
-ALTER TABLE public.page OWNER TO etl_dev;
+ALTER TABLE public.page OWNER TO etldev;
 
 --
--- Name: page_lookup_nonredirect; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: page_lookup_nonredirect; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.page_lookup_nonredirect (
@@ -89,10 +89,10 @@ CREATE TABLE public.page_lookup_nonredirect (
 );
 
 
-ALTER TABLE public.page_lookup_nonredirect OWNER TO etl_dev;
+ALTER TABLE public.page_lookup_nonredirect OWNER TO etldev;
 
 --
--- Name: page_lookup_redirect; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: page_lookup_redirect; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.page_lookup_redirect (
@@ -104,10 +104,10 @@ CREATE TABLE public.page_lookup_redirect (
 );
 
 
-ALTER TABLE public.page_lookup_redirect OWNER TO etl_dev;
+ALTER TABLE public.page_lookup_redirect OWNER TO etldev;
 
 --
--- Name: pagecounts; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: pagecounts; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.pagecounts (
@@ -118,10 +118,10 @@ CREATE TABLE public.pagecounts (
 );
 
 
-ALTER TABLE public.pagecounts OWNER TO etl_dev;
+ALTER TABLE public.pagecounts OWNER TO etldev;
 
 --
--- Name: redirect; Type: TABLE; Schema: public; Owner: etl_dev
+-- Name: redirect; Type: TABLE; Schema: public; Owner: etldev
 --
 
 CREATE TABLE public.redirect (
@@ -130,10 +130,10 @@ CREATE TABLE public.redirect (
 );
 
 
-ALTER TABLE public.redirect OWNER TO etl_dev;
+ALTER TABLE public.redirect OWNER TO etldev;
 
 --
--- Data for Name: filtered_pagecounts; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: filtered_pagecounts; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.filtered_pagecounts ("group", page_title, views, bytes_sent) FROM stdin;
@@ -141,7 +141,7 @@ COPY public.filtered_pagecounts ("group", page_title, views, bytes_sent) FROM st
 
 
 --
--- Data for Name: lookup; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: lookup; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.lookup (redirect_id, redirect_title, true_title, page_id, page_version) FROM stdin;
@@ -149,7 +149,7 @@ COPY public.lookup (redirect_id, redirect_title, true_title, page_id, page_versi
 
 
 --
--- Data for Name: normalized_pagecounts; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: normalized_pagecounts; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.normalized_pagecounts ("group", page_title, views, bytes_sent) FROM stdin;
@@ -157,7 +157,7 @@ COPY public.normalized_pagecounts ("group", page_title, views, bytes_sent) FROM 
 
 
 --
--- Data for Name: page; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: page; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.page (pageid, page_latest, page_title) FROM stdin;
@@ -165,7 +165,7 @@ COPY public.page (pageid, page_latest, page_title) FROM stdin;
 
 
 --
--- Data for Name: page_lookup_nonredirect; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: page_lookup_nonredirect; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.page_lookup_nonredirect (redirect_id, redirect_title, true_title, page_id, page_version) FROM stdin;
@@ -173,7 +173,7 @@ COPY public.page_lookup_nonredirect (redirect_id, redirect_title, true_title, pa
 
 
 --
--- Data for Name: page_lookup_redirect; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: page_lookup_redirect; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.page_lookup_redirect (redirect_id, redirect_title, true_title, page_id, page_version) FROM stdin;
@@ -181,7 +181,7 @@ COPY public.page_lookup_redirect (redirect_id, redirect_title, true_title, page_
 
 
 --
--- Data for Name: pagecounts; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: pagecounts; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.pagecounts ("group", page_title, views, bytes_sent) FROM stdin;
@@ -189,7 +189,7 @@ COPY public.pagecounts ("group", page_title, views, bytes_sent) FROM stdin;
 
 
 --
--- Data for Name: redirect; Type: TABLE DATA; Schema: public; Owner: etl_dev
+-- Data for Name: redirect; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
 COPY public.redirect (rd_from, page_title) FROM stdin;

@@ -1,4 +1,4 @@
-from data_lineage.parser import visit_dml_queries
+from data_lineage.parser import visit_dml_query
 
 
 def test_parser(parse_queries_fixture):
@@ -7,7 +7,7 @@ def test_parser(parse_queries_fixture):
 
 def test_visitor(save_catalog, parse_queries_fixture):
     catalog = save_catalog
-    dml = visit_dml_queries(catalog, parse_queries_fixture)
+    dml = [visit_dml_query(catalog, parsed) for parsed in parse_queries_fixture]
     assert len(dml) == 5
 
     for d in dml:

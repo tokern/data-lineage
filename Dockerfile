@@ -11,7 +11,7 @@ FROM base AS python-deps
 
 # Install pipenv and compilation dependencies
 RUN pip install pipenv
-RUN apt-get update && apt-get install -y --no-install-recommends gcc
+RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev default-libmysqlclient-dev build-essential
 
 # Install python dependencies in /.venv
 COPY Pipfile .
