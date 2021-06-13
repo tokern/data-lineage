@@ -302,9 +302,10 @@ class AcceptingScalar(AcceptingBase):
 
 
 class Parsed:
-    def __init__(self, name: str, node: AcceptingNode):
+    def __init__(self, name: str, query: str, node: AcceptingNode):
         self._name = name
         self._node = node
+        self._query = query
 
     @property
     def name(self):
@@ -314,10 +315,14 @@ class Parsed:
     def node(self):
         return self._node
 
+    @property
+    def query(self):
+        return self._query
+
 
 def parse(sql: str, name: str = None) -> Parsed:
     if name is None:
         name = str(hash(sql))
     node = AcceptingNode(parse_sql(sql))
 
-    return Parsed(name, node)
+    return Parsed(name, sql, node)

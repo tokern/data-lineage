@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-import requests
 from dbcat.catalog.models import ColumnLineage, Job, JobExecution, JobExecutionStatus
 
 
@@ -261,7 +260,7 @@ def load_page_lookup_nonredirect_edges(save_catalog):
     column_edge_ids = load_edges(catalog, expected_edges, executions[0])
     print("Inserted edges {}".format(",".join(str(v) for v in column_edge_ids)))
 
-    yield catalog, expected_edges
+    yield catalog, job, expected_edges
 
     session = catalog.scoped_session
     session.query(ColumnLineage).filter(ColumnLineage.id.in_(column_edge_ids)).delete(
@@ -281,62 +280,27 @@ def load_page_lookup_nonredirect_edges(save_catalog):
     session.commit()
 
 
-def test_api_main(live_server, load_page_lookup_nonredirect_edges):
-    response = requests.get(
-        "http://{}:{}/api/main".format(live_server.host, live_server.port)
-    )
-    graph = response.json()
-    assert len(graph["edges"]) == 62
-    assert len(graph["nodes"]) == 93
+def test_api_main(graph_sdk, load_page_lookup_nonredirect_edges):
+    catalog, job, expected_edges = load_page_lookup_nonredirect_edges
+    graph = graph_sdk.get([job.id])
+    assert len(graph["edges"]) == 10
+    assert len(graph["nodes"]) == 15
 
-    # assert response.json() == {
-    #     "edges": [
-    #         {"source": "column:4", "target": "task:1"},
-    #         {"source": "task:1", "target": "column:9"},
-    #         {"source": "column:4", "target": "task:1"},
-    #         {"source": "task:1", "target": "column:12"},
-    #         {"source": "column:6", "target": "task:1"},
-    #         {"source": "task:1", "target": "column:10"},
-    #         {"source": "column:6", "target": "task:1"},
-    #         {"source": "task:1", "target": "column:11"},
-    #         {"source": "column:5", "target": "task:1"},
-    #         {"source": "task:1", "target": "column:13"},
-    #     ],
-    #     "nodes": [
-    #         {"id": "column:4", "name": "test.default.page.page_id", "type": "data"},
-    #         {
-    #             "id": "column:9",
-    #             "name": "test.default.page_lookup_nonredirect.redirect_id",
-    #             "type": "data",
-    #         },
-    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
-    #         {"id": "column:4", "name": "test.default.page.page_id", "type": "data"},
-    #         {
-    #             "id": "column:12",
-    #             "name": "test.default.page_lookup_nonredirect.page_id",
-    #             "type": "data",
-    #         },
-    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
-    #         {"id": "column:6", "name": "test.default.page.page_title", "type": "data"},
-    #         {
-    #             "id": "column:10",
-    #             "name": "test.default.page_lookup_nonredirect.redirect_title",
-    #             "type": "data",
-    #         },
-    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
-    #         {"id": "column:6", "name": "test.default.page.page_title", "type": "data"},
-    #         {
-    #             "id": "column:11",
-    #             "name": "test.default.page_lookup_nonredirect.true_title",
-    #             "type": "data",
-    #         },
-    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
-    #         {"id": "column:5", "name": "test.default.page.page_latest", "type": "data"},
-    #         {
-    #             "id": "column:13",
-    #             "name": "test.default.page_lookup_nonredirect.page_version",
-    #             "type": "data",
-    #         },
-    #         {"id": "task:1", "name": "insert_page_lookup_nonredirect", "type": "task"},
-    #     ],
-    # }
+
+def test_parser(rest_catalog, parser_sdk, graph_sdk, save_catalog):
+    data = {
+        "name": "LOAD page_lookup",
+        "query": "INSERT INTO page_lookup SELECT plr.redirect_id, plr.redirect_title, plr.true_title, plr.page_id, "
+        "plr.page_version FROM page_lookup_redirect plr",
+    }
+
+    job_execution = parser_sdk.parse(**data)
+    assert job_execution is not None
+
+    graph = graph_sdk.get([job_execution.job_id])
+
+    assert len(graph["edges"]) == 10
+    assert len(graph["nodes"]) == 15
+
+    column_lineages = rest_catalog.get_column_lineage([job_execution.job_id])
+    assert (len(column_lineages)) == 10

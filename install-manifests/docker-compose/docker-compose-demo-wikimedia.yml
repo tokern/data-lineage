@@ -7,7 +7,7 @@ services:
     networks:
       - tokern-internal
     volumes:
-    - db_data:/var/lib/postgresql/data
+    - tokern_catalog_data:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: catal0g_passw0rd
       POSTGRES_USER: catalog_user
@@ -19,7 +19,7 @@ services:
     networks:
       - tokern-internal
     volumes:
-    - db_data:/var/lib/postgresql/data
+    - tokern_wikimedia_data:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: 3tld3v
       POSTGRES_USER: etldev
@@ -34,7 +34,7 @@ services:
       CATALOG_PASSWORD: catal0g_passw0rd
       CATALOG_USER: catalog_user
       CATALOG_DB: tokern
-      CATALOG_HOST: demodb
+      CATALOG_HOST: tokern-catalog
       SERVER_ADDRESS: "0.0.0.0:4142"
   toker-viz:
     image: tokern/data-lineage-viz:latest
@@ -64,4 +64,5 @@ networks:
       - subnet: 10.11.0.0/24
 
 volumes:
-  db_data:
+  tokern_catalog_data:
+  tokern_wikimedia_data:

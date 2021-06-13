@@ -2,10 +2,11 @@ from contextlib import closing
 
 import pytest
 import yaml
-from dbcat import Catalog, catalog_connection
+from dbcat import Catalog as DbCatalog
+from dbcat import catalog_connection
 from dbcat.catalog import CatSource
 
-from data_lineage.data_lineage import RestCatalog
+from data_lineage import Catalog, Graph, Parser
 from data_lineage.parser import parse
 from data_lineage.server import create_server
 
@@ -37,9 +38,9 @@ catalog:
 
 
 @pytest.fixture(scope="session")
-def root_connection():
+def root_connection() -> DbCatalog:
     config = yaml.safe_load(postgres_conf)
-    with closing(Catalog(**config["catalog"])) as conn:
+    with closing(DbCatalog(**config["catalog"])) as conn:
         yield conn
 
 
@@ -83,7 +84,7 @@ def open_catalog_connection(setup_catalog):
 
 
 class File:
-    def __init__(self, name: str, path: str, catalog: Catalog):
+    def __init__(self, name: str, path: str, catalog: DbCatalog):
         self.name = name
         self._path = path
         self._catalog = catalog
@@ -120,11 +121,10 @@ class File:
 
 @pytest.fixture(scope="session")
 def save_catalog(open_catalog_connection):
-    catalog = open_catalog_connection
-    scanner = File("test", "test/catalog.json", catalog)
+    scanner = File("test", "test/catalog.json", open_catalog_connection)
     scanner.scan()
-    yield catalog
-    session = catalog.scoped_session
+    yield open_catalog_connection
+    session = open_catalog_connection.scoped_session
     [session.delete(db) for db in session.query(CatSource).all()]
     session.commit()
 
@@ -139,4 +139,14 @@ def app(setup_catalog):
 
 @pytest.fixture(scope="session")
 def rest_catalog(live_server, save_catalog):
-    yield RestCatalog("http://{}:{}".format(live_server.host, live_server.port))
+    yield Catalog("http://{}:{}".format(live_server.host, live_server.port))
+
+
+@pytest.fixture(scope="session")
+def graph_sdk(live_server):
+    yield Graph("http://{}:{}".format(live_server.host, live_server.port))
+
+
+@pytest.fixture(scope="session")
+def parser_sdk(live_server):
+    yield Parser("http://{}:{}".format(live_server.host, live_server.port))
