@@ -1,3 +1,59 @@
+[tool.poetry]
+name = "data-lineage"
+version = "0.7.0"
+description = "Open Source Data Lineage Tool for Redshift. Snowflake and many other databases"
+authors = ["Tokern <info@tokern.io>"]
+license = "MIT"
+classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Database",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords=["data-lineage","postgres","snowflake","redshift","glue"]
+readme="README.md"
+homepage="https://tokern.io/"
+repository="https://github.com/tokern/data-lineage/"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pglast = "==1.18"
+inflection = "*"
+networkx = "*"
+click = "*"
+PyYAML = "*"
+dbcat = ">=0.5.2"
+gunicorn = "*"
+flask = "~=1.1"
+flask-restless-ng = "*"
+requests = "*"
+furl = "*"
+flask-restful = "*"
+SQLAlchemy = ">=1.3.6,<1.4"
+boto3 = "1.10.1"
+cryptography = "^3.3.2"
+amundsen-databuilder = {extras = ["athena", "bigquery", "glue", "rds", "snowflake"], version = "^4.4.1"}
+
+[tool.poetry.dev-dependencies]
+black = "==19.10b0"
+flake8 = "*"
+isort = "*"
+pre-commit = "*"
+pytest = "*"
+pytest-cov = "*"
+pipenv-setup = "*"
+mypy = "*"
+jupyter = "*"
+pytest-flask = "*"
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+data_lineage = "data_lineage.__main__:main"
