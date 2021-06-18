@@ -144,6 +144,19 @@ def test_insert_cols():
     assert visitor.source_tables == [(None, "page")]
 
 
+def test_with_clause():
+    query = "with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select redirect_title, true_title, page_id, page_version from pln;"
+    parsed = parse(query)
+    visitor = SelectSourceVisitor("test_with_clause")
+    parsed.node.accept(visitor)
+    visitor.resolve()
+
+    assert len(visitor.target_columns) == 4
+    assert visitor.target_table == (None, "page_lookup_redirect")
+    assert len(visitor.source_columns) == 4
+    assert visitor.source_tables == [(None, "page_lookup_nonredirect")]
+
+
 def test_syntax_errors():
     queries = [
         "INSERT INTO page_lookup_nonredirect(page_id, latest) SELECT page.page_id, page.page_latest FROM page",

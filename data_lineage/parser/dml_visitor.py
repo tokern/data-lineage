@@ -141,12 +141,60 @@ class DmlVisitor(Visitor):
 class SelectSourceVisitor(DmlVisitor):
     def __init__(self, name):
         super(SelectSourceVisitor, self).__init__(name)
+        self._with_aliases = {}
 
     def visit_select_stmt(self, node):
         table_visitor = TableVisitor()
         table_visitor.visit(node)
         self._source_tables = table_visitor.sources
         self._source_columns = table_visitor.columns
+
+    def visit_common_table_expr(self, node):
+        with_alias = node.ctename.value
+        table_visitor = TableVisitor()
+        table_visitor.visit(node.ctequery)
+
+        self._with_aliases[with_alias] = {
+            "tables": table_visitor.sources,
+            "columns": table_visitor.columns,
+        }
+
+    def resolve(self):
+        super(SelectSourceVisitor, self).resolve()
+        if self._with_aliases:
+            # Resolve all the WITH expressions
+            for key in self._with_aliases:
+                bound_tables = []
+                for table in self._with_aliases[key]["tables"]:
+                    visitor = RangeVarVisitor()
+                    visitor.visit(table)
+                    bound_tables.append(visitor.fqdn)
+
+                self._with_aliases[key]["bound_tables"] = bound_tables
+
+                bound_cols = []
+                for column in self._with_aliases[key]["columns"]:
+                    column_ref_visitor = ColumnRefVisitor()
+                    column_ref_visitor.visit(column)
+                    bound_cols.append(column_ref_visitor.name[0])
+
+                self._with_aliases[key]["bound_columns"] = bound_cols
+
+            # Replace the bound tables with those bound from with clause
+            replace_target_tables = []
+            for table in self._source_tables:
+                replaced = False
+                for key in self._with_aliases.keys():
+                    if table == (None, key):
+                        replace_target_tables = (
+                            replace_target_tables
+                            + self._with_aliases[key]["bound_tables"]
+                        )
+                        replaced = True
+
+                if not replaced:
+                    replace_target_tables.append(table)
+            self._source_tables = replace_target_tables
 
 
 class SelectIntoVisitor(DmlVisitor):
