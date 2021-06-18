@@ -50,6 +50,13 @@ class Visitor:
         self.visit(node.onConflictClause)
         self.visit(node.returningList)
 
+    def visit_with_clause(self, node):
+        self.visit(node.ctes)
+
+    def visit_common_table_expr(self, node):
+        self.visit(node.ctename)
+        self.visit(node.ctequery)
+
     def visit_join_expr(self, node):
         self.visit(node.larg)
         self.visit(node.rarg)
