@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from data_lineage.parser.visitor import Visitor
 
 
@@ -27,13 +29,25 @@ class TableVisitor(Visitor):
 class ColumnRefVisitor(Visitor):
     def __init__(self):
         self._name = []
+        self._is_a_star = False
 
     @property
-    def name(self):
+    def name(self) -> Tuple:
         return tuple(self._name)
+
+    @property
+    def is_a_star(self) -> bool:
+        return self._is_a_star
+
+    @property
+    def is_qualified(self) -> bool:
+        return len(self._name) == 2 or (len(self._name) == 1 and self._is_a_star)
 
     def visit_string(self, node):
         self._name.append(node.str.value)
+
+    def visit_a_star(self, node):
+        self._is_a_star = True
 
 
 class RangeVarVisitor(Visitor):

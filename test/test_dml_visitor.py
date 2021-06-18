@@ -1,6 +1,6 @@
 import pytest
 
-from data_lineage.parser import parse, parse_queries
+from data_lineage.parser import parse, parse_queries, visit_dml_query
 from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     SelectIntoVisitor,
@@ -118,30 +118,55 @@ def test_copy(target, query):
     assert visitor.target_table == target
 
 
-def test_insert():
-    query = "INSERT INTO page_lookup_nonredirect SELECT page.page_id, page.page_latest FROM page"
+@pytest.mark.parametrize(
+    "query",
+    [
+        "INSERT INTO page_lookup SELECT plr.redirect_id, plr.redirect_title, plr.true_title, plr.page_id, plr.page_version FROM page_lookup_redirect plr",
+        "INSERT INTO page_lookup SELECT redirect_id, redirect_title, true_title, page_id, page_version FROM page_lookup_redirect",
+        "INSERT INTO page_lookup SELECT page_lookup_redirect.* FROM page_lookup_redirect",
+        "INSERT INTO page_lookup SELECT * FROM page_lookup_redirect",
+    ],
+)
+def test_insert(save_catalog, query):
     parsed = parse(query)
-    visitor = SelectSourceVisitor("test_insert")
-    parsed.node.accept(visitor)
-    visitor.resolve()
+    visitor = visit_dml_query(save_catalog, parsed)
+    assert visitor is not None
 
-    assert len(visitor.target_columns) == 0
-    assert visitor.target_table == (None, "page_lookup_nonredirect")
-    assert len(visitor.source_columns) == 2
-    assert visitor.source_tables == [(None, "page")]
+    assert len(visitor.target_columns) == 5
+    assert visitor.target_table.fqdn == ("test", "default", "page_lookup")
+    assert len(visitor.source_columns) == 5
+    assert [table.fqdn for table in visitor.source_tables] == [
+        ("test", "default", "page_lookup_redirect")
+    ]
 
 
-def test_insert_cols():
-    query = "INSERT INTO page_lookup_nonredirect(page_id, latest) SELECT page.page_id, page.page_latest FROM page"
+def test_insert_cols(save_catalog):
+    query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse(query)
-    visitor = SelectSourceVisitor("test_insert_cols")
-    parsed.node.accept(visitor)
-    visitor.resolve()
+    visitor = visit_dml_query(save_catalog, parsed)
+    assert visitor is not None
 
     assert len(visitor.target_columns) == 2
-    assert visitor.target_table == (None, "page_lookup_nonredirect")
+    assert visitor.target_table.fqdn == ("test", "default", "page_lookup_nonredirect")
     assert len(visitor.source_columns) == 2
-    assert visitor.source_tables == [(None, "page")]
+    assert [table.fqdn for table in visitor.source_tables] == [
+        ("test", "default", "page")
+    ]
+
+
+def test_insert_with_join(save_catalog):
+    query = "insert into page_lookup_redirect select original_page.page_id redirect_id, original_page.page_title redirect_title, final_page.page_title as true_title, final_page.page_id, final_page.page_latest from page final_page join redirect on (redirect.page_title = final_page.page_title) join page original_page on (redirect.rd_from = original_page.page_id)"
+    parsed = parse(query)
+    visitor = visit_dml_query(save_catalog, parsed)
+    assert visitor is not None
+
+    assert len(visitor.target_columns) == 5
+    assert visitor.target_table.fqdn == ("test", "default", "page_lookup_redirect")
+    assert len(visitor.source_columns) == 5
+    assert sorted([table.fqdn for table in visitor.source_tables]) == [
+        ("test", "default", "page"),
+        ("test", "default", "redirect"),
+    ]
 
 
 def test_syntax_errors():
