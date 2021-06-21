@@ -1,8 +1,10 @@
 import logging
-from typing import List
+from typing import Dict, List, Optional, Set
 
 from dbcat.catalog import Catalog, CatColumn, CatTable
 
+from data_lineage.parser.binder import SelectBinder, WithContext
+from data_lineage.parser.node import AcceptingNode
 from data_lineage.parser.table_visitor import (
     ColumnRefVisitor,
     RangeVarVisitor,
@@ -14,10 +16,14 @@ from data_lineage.parser.visitor import Visitor
 class DmlVisitor(Visitor):
     def __init__(self, name: str):
         self._name = name
-        self._target_table = None
+        self._target_table: Optional[CatTable] = None
         self._target_columns: List[CatColumn] = []
-        self._source_tables: List[CatTable] = []
+        self._source_tables: Set[CatTable] = set()
         self._source_columns: List[CatColumn] = []
+        self._select_tables: List[AcceptingNode] = []
+        self._select_columns: List[AcceptingNode] = []
+        self._with_aliases: Dict[str, List[AcceptingNode]] = {}
+        self._alias_map: Dict[str, WithContext] = {}
 
     @property
     def name(self) -> str:
@@ -32,12 +38,20 @@ class DmlVisitor(Visitor):
         return self._target_columns
 
     @property
-    def source_tables(self) -> List[CatTable]:
+    def source_tables(self) -> Set[CatTable]:
         return self._source_tables
 
     @property
     def source_columns(self) -> List[CatColumn]:
         return self._source_columns
+
+    @property
+    def select_tables(self) -> List[AcceptingNode]:
+        return self._select_tables
+
+    @property
+    def select_columns(self) -> List[AcceptingNode]:
+        return self._select_columns
 
     def visit_range_var(self, node):
         self._target_table = node
@@ -45,36 +59,33 @@ class DmlVisitor(Visitor):
     def visit_res_target(self, node):
         self._target_columns.append(node.name.value)
 
-    def resolve(self):
+    def visit_common_table_expr(self, node):
+        with_alias = node.ctename.value
+        table_visitor = TableVisitor()
+        table_visitor.visit(node.ctequery)
+
+        self._with_aliases[with_alias] = {
+            "tables": table_visitor.sources,
+            "columns": table_visitor.columns,
+        }
+
+    def bind(self, catalog: Catalog):
+        self._bind_target(catalog)
+
+        self._bind_with(catalog)
+        binder = SelectBinder(
+            catalog, self._select_tables, self._select_columns, self._alias_map
+        )
+        binder.bind()
+        self._source_tables = binder.tables
+        self._source_columns = binder.columns
+
+    def _bind_target(self, catalog: Catalog):
         target_table_visitor = RangeVarVisitor()
         target_table_visitor.visit(self._target_table)
-
-        self._target_table = target_table_visitor.fqdn
-
-        bound_tables = []
-        for table in self._source_tables:
-            visitor = RangeVarVisitor()
-            visitor.visit(table)
-            bound_tables.append(visitor.fqdn)
-
-        self._source_tables = bound_tables
-
-        bound_cols = []
-        for column in self._source_columns:
-            column_ref_visitor = ColumnRefVisitor()
-            column_ref_visitor.visit(column)
-            bound_cols.append(column_ref_visitor.name[0])
-
-        self._source_columns = bound_cols
-
-    def bind(self, catalog: Catalog):  # noqa: C901
-        target_table_visitor = RangeVarVisitor()
-        target_table_visitor.visit(self._target_table)
-
         logging.debug("Searching for: {}".format(target_table_visitor.search_string))
         self._target_table = catalog.search_table(**target_table_visitor.search_string)
         logging.debug("Bound target table: {}".format(self._target_table))
-
         if len(self._target_columns) == 0:
             self._target_columns = catalog.get_columns_for_table(self._target_table)
             logging.debug("Bound all columns in {}".format(self._target_table))
@@ -97,141 +108,55 @@ class DmlVisitor(Visitor):
             self._target_columns = bound_cols
             logging.debug("Bound {} target columns".format(len(bound_cols)))
 
-        alias_map = {}
-        bound_tables = set()
-        for table in self._source_tables:
+    def _bind_with(self, catalog):
+        if self._with_aliases:
+            # Bind all the WITH expressions
+            for key in self._with_aliases.keys():
+                binder = SelectBinder(
+                    catalog,
+                    self._with_aliases[key]["tables"],
+                    self._with_aliases[key]["columns"],
+                )
+                binder.bind()
+                self._alias_map[key] = WithContext(
+                    catalog=catalog,
+                    alias=key,
+                    tables=binder.tables,
+                    columns=binder.columns,
+                )
+
+    def resolve(self):
+        target_table_visitor = RangeVarVisitor()
+        target_table_visitor.visit(self._target_table)
+
+        self._target_table = target_table_visitor.fqdn
+
+        bound_tables = []
+        for table in self._select_tables:
             visitor = RangeVarVisitor()
             visitor.visit(table)
-            if visitor.alias is not None:
-                alias_map[visitor.alias] = visitor.search_string
+            bound_tables.append(visitor.fqdn)
 
-            logging.debug("Searching for: {}".format(visitor.search_string))
+        self._select_tables = bound_tables
 
-            candidate_table = catalog.search_table(**visitor.search_string)
-            logging.debug("Bound source table: {}".format(candidate_table))
-            bound_tables.add(candidate_table)
-
-        self._source_tables = list(bound_tables)
         bound_cols = []
-        for column in self._source_columns:
+        for column in self._select_columns:
             column_ref_visitor = ColumnRefVisitor()
             column_ref_visitor.visit(column)
-            if column_ref_visitor.is_qualified:
-                if column_ref_visitor.name[0] in alias_map:
-                    table_name = alias_map[column_ref_visitor.name[0]]
-                else:
-                    table_name = {"table_like": column_ref_visitor.name[0]}
+            bound_cols.append(column_ref_visitor.name[0])
 
-                logging.debug("Searching for: {}".format(table_name))
-                candidate_table = catalog.search_table(**table_name)
-
-                if column_ref_visitor.is_a_star:
-                    bound_cols = bound_cols + catalog.get_columns_for_table(
-                        candidate_table
-                    )
-                    logging.debug(
-                        "Bound all source columns in {}".format(candidate_table)
-                    )
-                else:
-                    bound = catalog.get_columns_for_table(
-                        table=candidate_table, column_names=[column_ref_visitor.name[1]]
-                    )
-                    if len(bound) == 0:
-                        raise RuntimeError("{} not found in table".format(column))
-                    elif len(bound) > 1:
-                        raise RuntimeError(
-                            "Ambiguous column name. Multiple matches found"
-                        )
-                    logging.debug("Bound source column: {}".format(bound[0]))
-                    bound_cols.append(bound[0])
-            else:
-                if column_ref_visitor.is_a_star:
-                    for table in self._source_tables:
-                        bound_cols = bound_cols + catalog.get_columns_for_table(table)
-                        logging.debug("Bound all source columns in {}".format(table))
-                else:
-                    found = False
-                    for table in self._source_tables:
-                        bound = catalog.get_columns_for_table(
-                            table=table, column_names=[column_ref_visitor.name[0]]
-                        )
-                        if len(bound) == 1:
-                            if not found:
-                                logging.debug(
-                                    "Bound source column: {}".format(bound[0])
-                                )
-                                bound_cols.append(bound[0])
-                                found = True
-                            else:
-                                raise RuntimeError(
-                                    "Ambiguous column name {}. Multiple matches found".format(
-                                        column
-                                    )
-                                )
-
-                    if not found:
-                        raise RuntimeError("{} not found in any tables.".format(column))
-
-        self._source_columns = bound_cols
+        self._select_columns = bound_cols
 
 
 class SelectSourceVisitor(DmlVisitor):
     def __init__(self, name):
         super(SelectSourceVisitor, self).__init__(name)
-        self._with_aliases = {}
 
     def visit_select_stmt(self, node):
         table_visitor = TableVisitor()
         table_visitor.visit(node)
-        self._source_tables = table_visitor.sources
-        self._source_columns = table_visitor.columns
-
-    def visit_common_table_expr(self, node):
-        with_alias = node.ctename.value
-        table_visitor = TableVisitor()
-        table_visitor.visit(node.ctequery)
-
-        self._with_aliases[with_alias] = {
-            "tables": table_visitor.sources,
-            "columns": table_visitor.columns,
-        }
-
-    def resolve(self):
-        super(SelectSourceVisitor, self).resolve()
-        if self._with_aliases:
-            # Resolve all the WITH expressions
-            for key in self._with_aliases:
-                bound_tables = []
-                for table in self._with_aliases[key]["tables"]:
-                    visitor = RangeVarVisitor()
-                    visitor.visit(table)
-                    bound_tables.append(visitor.fqdn)
-
-                self._with_aliases[key]["bound_tables"] = bound_tables
-
-                bound_cols = []
-                for column in self._with_aliases[key]["columns"]:
-                    column_ref_visitor = ColumnRefVisitor()
-                    column_ref_visitor.visit(column)
-                    bound_cols.append(column_ref_visitor.name[0])
-
-                self._with_aliases[key]["bound_columns"] = bound_cols
-
-            # Replace the bound tables with those bound from with clause
-            replace_target_tables = []
-            for table in self._source_tables:
-                replaced = False
-                for key in self._with_aliases.keys():
-                    if table == (None, key):
-                        replace_target_tables = (
-                            replace_target_tables
-                            + self._with_aliases[key]["bound_tables"]
-                        )
-                        replaced = True
-
-                if not replaced:
-                    replace_target_tables.append(table)
-            self._source_tables = replace_target_tables
+        self._select_tables = table_visitor.sources
+        self._select_columns = table_visitor.columns
 
 
 class SelectIntoVisitor(DmlVisitor):
@@ -241,9 +166,10 @@ class SelectIntoVisitor(DmlVisitor):
     def visit_select_stmt(self, node):
         super(SelectIntoVisitor, self).visit(node.intoClause)
         table_visitor = TableVisitor()
-        table_visitor.visit(node)
-        self._source_tables = table_visitor.sources
-        self._source_columns = table_visitor.columns
+        table_visitor.visit(node.targetList)
+        table_visitor.visit(node.fromClause)
+        self._select_tables = table_visitor.sources
+        self._select_columns = table_visitor.columns
 
 
 class CopyFromVisitor(DmlVisitor):
