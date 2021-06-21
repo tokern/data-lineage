@@ -388,7 +388,7 @@ test = ["pytest (>=6.0)", "pytest-cov", "pytest-subtests", "pytest-xdist", "pret
 
 [[package]]
 name = "dbcat"
-version = "0.5.2"
+version = "0.5.3"
 description = "Tokern Data Catalog"
 category = "main"
 optional = false
@@ -2588,8 +2588,8 @@ cryptography = [
     {file = "cryptography-3.4.7.tar.gz", hash = "sha256:3d10de8116d25649631977cb37da6cbdd2d6fa0e0281d014a5b7d337255ca713"},
 ]
 dbcat = [
-    {file = "dbcat-0.5.2-py3-none-any.whl", hash = "sha256:916f0c70504b0a7ecdd178d96a8447e8d0e839af0845f39ce8f7d8f19ee9295e"},
-    {file = "dbcat-0.5.2.tar.gz", hash = "sha256:70988ad5a531ba15ee281e537f7fdee2566a02d013a6e8f783a3224733825726"},
+    {file = "dbcat-0.5.3-py3-none-any.whl", hash = "sha256:d0e0c29ac752b55131bae76e1125ffb9707d9f59284b41f8c2bd56a6e5f1548c"},
+    {file = "dbcat-0.5.3.tar.gz", hash = "sha256:4a299a719a3161caf3466b548f993a8ef6df44ee45f319cd21cae0f80b23969a"},
 ]
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
