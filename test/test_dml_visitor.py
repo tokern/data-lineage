@@ -36,7 +36,7 @@ def test_sanity_insert(target, sources, sql):
     insert_visitor.resolve()
 
     assert insert_visitor.target_table == target
-    assert insert_visitor.source_tables == sources
+    assert insert_visitor.select_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -66,7 +66,7 @@ def test_sanity_ctas(target, sources, sql):
     parsed.node.accept(visitor)
     visitor.resolve()
     assert visitor.target_table == target
-    assert visitor.source_tables == sources
+    assert visitor.select_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -96,7 +96,7 @@ def test_sanity_select_into(target, sources, sql):
     visitor.resolve()
 
     assert visitor.target_table == target
-    assert visitor.source_tables == sources
+    assert visitor.select_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -166,6 +166,27 @@ def test_insert_with_join(save_catalog):
     assert sorted([table.fqdn for table in visitor.source_tables]) == [
         ("test", "default", "page"),
         ("test", "default", "redirect"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select redirect_title, true_title, page_id, page_version from pln;",
+        "with pln as (select * from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select redirect_title, true_title, page_id, page_version from pln;",
+        "with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select * from pln;",
+    ],
+)
+def test_with_clause(save_catalog, query):
+    parsed = parse(query)
+    visitor = visit_dml_query(save_catalog, parsed)
+    assert visitor is not None
+
+    assert len(visitor.target_columns) == 4
+    assert visitor.target_table.fqdn == ("test", "default", "page_lookup_redirect")
+    assert len(visitor.source_columns) == 4
+    assert [table.fqdn for table in visitor.source_tables] == [
+        ("test", "default", "page_lookup_nonredirect")
     ]
 
 
