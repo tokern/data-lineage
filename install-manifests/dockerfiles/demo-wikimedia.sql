@@ -144,7 +144,7 @@ COPY public.filtered_pagecounts ("group", page_title, views, bytes_sent) FROM st
 -- Data for Name: lookup; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
-COPY public.lookup (redirect_id, redirect_title, true_title, page_id, page_version) FROM stdin;
+COPY public.page_lookup (redirect_id, redirect_title, true_title, page_id, page_version) FROM stdin;
 \.
 
 
@@ -160,7 +160,7 @@ COPY public.normalized_pagecounts ("group", page_title, views, bytes_sent) FROM 
 -- Data for Name: page; Type: TABLE DATA; Schema: public; Owner: etldev
 --
 
-COPY public.page (pageid, page_latest, page_title) FROM stdin;
+COPY public.page (page_id, page_latest, page_title) FROM stdin;
 \.
 
 

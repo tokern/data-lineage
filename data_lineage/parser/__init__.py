@@ -34,7 +34,7 @@ def visit_dml_query(catalog: Catalog, parsed: Parsed) -> Optional[DmlVisitor]:
 
     for visitor in [select_source_visitor, select_into_visitor, copy_from_visitor]:
         parsed.node.accept(visitor)
-        if len(visitor.select_tables) > 0 and visitor.target_table is not None:
+        if len(visitor.select_tables) > 0 and visitor.insert_table is not None:
             visitor.bind(catalog)
             return visitor
     return None

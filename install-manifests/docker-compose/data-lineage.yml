@@ -1,0 +1,55 @@
+version: '3.6'
+services:
+  tokern-catalog:
+    image: postgres:13.2-alpine
+    container_name: tokern-catalog
+    restart: unless-stopped
+    networks:
+      - tokern-internal
+    volumes:
+    - tokern_catalog_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: catal0g_passw0rd
+      POSTGRES_USER: catalog_user
+      POSTGRES_DB: tokern
+  tokern-api:
+    image: tokern/data-lineage:latest
+    container_name: tokern-data-lineage
+    restart: unless-stopped
+    networks:
+      - tokern-internal
+    environment:
+      CATALOG_PASSWORD: catal0g_passw0rd
+      CATALOG_USER: catalog_user
+      CATALOG_DB: tokern
+      CATALOG_HOST: tokern-catalog
+      SERVER_ADDRESS: "0.0.0.0:4142"
+  toker-viz:
+    image: tokern/data-lineage-viz:latest
+    container_name: tokern-data-lineage-visualizer
+    restart: unless-stopped
+    networks:
+      - tokern-internal
+      - tokern-net
+    ports:
+      - "8000:80"
+networks:
+  tokern-net: # Exposed by your host.
+    # external: true
+    name: "tokern-net"
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.10.0.0/24
+  tokern-internal:
+    name: "tokern-internal"
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.11.0.0/24
+
+volumes:
+  tokern_catalog_data:
