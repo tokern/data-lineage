@@ -33,10 +33,10 @@ def test_sanity_insert(target, sources, sql):
     parsed = parse(sql)
     insert_visitor = SelectSourceVisitor("test_sanity_insert")
     parsed.node.accept(insert_visitor)
-    insert_visitor.resolve()
+    bound_target, bound_tables, bound_cols = insert_visitor.resolve()
 
-    assert insert_visitor.target_table == target
-    assert insert_visitor.select_tables == sources
+    assert bound_target == target
+    assert bound_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -64,9 +64,10 @@ def test_sanity_ctas(target, sources, sql):
     parsed = parse(sql)
     visitor = SelectSourceVisitor("test_sanity_ctas")
     parsed.node.accept(visitor)
-    visitor.resolve()
-    assert visitor.target_table == target
-    assert visitor.select_tables == sources
+    bound_target, bound_tables, bound_cols = visitor.resolve()
+
+    assert bound_target == target
+    assert bound_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -93,10 +94,10 @@ def test_sanity_select_into(target, sources, sql):
     parsed = parse(sql)
     visitor = SelectIntoVisitor("test_sanity_select_into")
     parsed.node.accept(visitor)
-    visitor.resolve()
+    bound_target, bound_tables, bound_cols = visitor.resolve()
 
-    assert visitor.target_table == target
-    assert visitor.select_tables == sources
+    assert bound_target == target
+    assert bound_tables == sources
 
 
 @pytest.mark.parametrize(
@@ -113,9 +114,9 @@ def test_copy(target, query):
     parsed = parse(query)
     visitor = CopyFromVisitor("test_copy")
     parsed.node.accept(visitor)
-    visitor.resolve()
+    bound_target, bound_tables, bound_cols = visitor.resolve()
 
-    assert visitor.target_table == target
+    assert bound_target == target
 
 
 @pytest.mark.parametrize(

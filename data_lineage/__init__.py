@@ -13,6 +13,18 @@ from furl import furl
 from data_lineage.graph import LineageGraph
 
 
+class TableNotFound(Exception):
+    """Table not found in catalog"""
+
+
+class ColumnNotFound(Exception):
+    """Column not found in catalog"""
+
+
+class ParseError(Exception):
+    """Parser Error"""
+
+
 class Graph:
     def __init__(self, url: str):
         self._base_url = furl(url) / "api/main"
@@ -126,8 +138,12 @@ class Catalog:
 
     def _get(self, path: str, obj_id: int) -> Dict[Any, Any]:
         response = self._session.get(self._build_url(path, str(obj_id)))
-        logging.debug(response.json())
-        return response.json()["data"]
+        json_response = response.json()
+        logging.debug(json_response)
+
+        if "error" in json_response:
+            raise RuntimeError(json_response["error"])
+        return json_response["data"]
 
     def _search(self, path: str, search_string: str, clazz: Type[BaseModel]):
         filters = [dict(name="name", op="like", val="%{}%".format(search_string))]
@@ -140,8 +156,12 @@ class Catalog:
         response = self._session.post(
             url=self._build_url(path), data=json.dumps(payload, default=str)
         )
-        logging.debug(response.json())
-        return response.json()["data"]
+        json_response = response.json()
+        logging.debug(json_response)
+
+        if "error" in json_response:
+            raise RuntimeError(json_response["error"])
+        return json_response["data"]
 
     def get_sources(self) -> Generator[Any, Any, None]:
         return self._index("sources", Source)
@@ -390,10 +410,18 @@ class Parser:
         self._base_url = furl(url) / "api/v1/parser"
         self._session = requests.Session()
 
-    def parse(self, query: str, name: str) -> JobExecution:
+    def parse(self, query: str, name: str = None) -> JobExecution:
         response = self._session.post(
             self._base_url, params={"query": query, "name": name}
         )
+        if response.status_code == 441:
+            raise TableNotFound(response.json()["message"])
+        elif response.status_code == 442:
+            raise ColumnNotFound(response.json()["message"])
+        elif response.status_code == 422:
+            raise ParseError(response.json()["message"])
+
+        response.raise_for_status()
         logging.debug(response.json())
         payload = response.json()["data"]
         return JobExecution(

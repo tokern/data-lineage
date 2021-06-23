@@ -1,7 +1,10 @@
 import datetime
+import logging
 
 import pytest
 from dbcat.catalog.models import ColumnLineage, Job, JobExecution, JobExecutionStatus
+
+from data_lineage import ColumnNotFound, ParseError, TableNotFound
 
 
 def test_get_sources(rest_catalog):
@@ -304,3 +307,39 @@ def test_parser(rest_catalog, parser_sdk, graph_sdk, save_catalog):
 
     column_lineages = rest_catalog.get_column_lineage([job_execution.job_id])
     assert (len(column_lineages)) == 10
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "insert into p_lookup select * from page_lookup_redirect",
+        "insert into page_lookup select * from pg_lp_rt",
+        "insert into page_lookup select plr.page_id, true_title from page_lookup_redirect",
+    ],
+)
+def test_parser_table_not_found(parser_sdk, save_catalog, query):
+    with pytest.raises(TableNotFound) as exc:
+        parser_sdk.parse(query=query)
+        logging.debug(exc)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "insert into page_lookup(title) select true_title from page_lookup_redirect",
+        "insert into page_lookup(true_title) select title from page_lookup_redirect",
+    ],
+)
+def test_parser_column_not_found(parser_sdk, save_catalog, query):
+    with pytest.raises(ColumnNotFound) as exc:
+        parser_sdk.parse(query=query)
+        logging.debug(exc)
+
+
+@pytest.mark.parametrize(
+    "query", ["insert page_lookup select * from page_lookup_redirect"]
+)
+def test_parser_parse_error(parser_sdk, save_catalog, query):
+    with pytest.raises(ParseError) as exc:
+        parser_sdk.parse(query=query)
+        logging.debug(exc)

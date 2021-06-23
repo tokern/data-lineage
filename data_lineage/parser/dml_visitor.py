@@ -1,8 +1,9 @@
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from dbcat.catalog import Catalog, CatColumn, CatTable
 
+from data_lineage import ColumnNotFound, TableNotFound
 from data_lineage.parser.binder import SelectBinder, WithContext
 from data_lineage.parser.node import AcceptingNode
 from data_lineage.parser.table_visitor import (
@@ -16,6 +17,8 @@ from data_lineage.parser.visitor import Visitor
 class DmlVisitor(Visitor):
     def __init__(self, name: str):
         self._name = name
+        self._insert_table: Optional[AcceptingNode] = None
+        self._insert_columns: List[str] = []
         self._target_table: Optional[CatTable] = None
         self._target_columns: List[CatColumn] = []
         self._source_tables: Set[CatTable] = set()
@@ -28,6 +31,10 @@ class DmlVisitor(Visitor):
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def insert_table(self) -> Optional[AcceptingNode]:
+        return self._insert_table
 
     @property
     def target_table(self) -> CatTable:
@@ -54,10 +61,10 @@ class DmlVisitor(Visitor):
         return self._select_columns
 
     def visit_range_var(self, node):
-        self._target_table = node
+        self._insert_table = node
 
     def visit_res_target(self, node):
-        self._target_columns.append(node.name.value)
+        self._insert_columns.append(node.name.value)
 
     def visit_common_table_expr(self, node):
         with_alias = node.ctename.value
@@ -82,20 +89,26 @@ class DmlVisitor(Visitor):
 
     def _bind_target(self, catalog: Catalog):
         target_table_visitor = RangeVarVisitor()
-        target_table_visitor.visit(self._target_table)
+        target_table_visitor.visit(self._insert_table)
         logging.debug("Searching for: {}".format(target_table_visitor.search_string))
-        self._target_table = catalog.search_table(**target_table_visitor.search_string)
+        try:
+            self._target_table = catalog.search_table(
+                **target_table_visitor.search_string
+            )
+        except RuntimeError as error:
+            logging.debug(str(error))
+            raise TableNotFound(str(error))
         logging.debug("Bound target table: {}".format(self._target_table))
-        if len(self._target_columns) == 0:
+        if len(self._insert_columns) == 0:
             self._target_columns = catalog.get_columns_for_table(self._target_table)
             logging.debug("Bound all columns in {}".format(self._target_table))
         else:
             bound_cols = catalog.get_columns_for_table(
-                self._target_table, column_names=self._target_columns
+                self._target_table, column_names=self._insert_columns
             )
             # Handle error case
-            if len(bound_cols) != len(self._target_columns):
-                for column in self._target_columns:
+            if len(bound_cols) != len(self._insert_columns):
+                for column in self._insert_columns:
                     found = False
                     for bound in bound_cols:
                         if column == bound.name:
@@ -103,7 +116,7 @@ class DmlVisitor(Visitor):
                             break
 
                     if not found:
-                        raise RuntimeError("'{}' column is not found".format(column))
+                        raise ColumnNotFound("{} column is not found".format(column))
 
             self._target_columns = bound_cols
             logging.debug("Bound {} target columns".format(len(bound_cols)))
@@ -125,11 +138,15 @@ class DmlVisitor(Visitor):
                     columns=binder.columns,
                 )
 
-    def resolve(self):
+    def resolve(
+        self,
+    ) -> Tuple[
+        Tuple[Optional[str], str],
+        List[Tuple[Optional[str], str]],
+        List[Tuple[Optional[str], str]],
+    ]:
         target_table_visitor = RangeVarVisitor()
-        target_table_visitor.visit(self._target_table)
-
-        self._target_table = target_table_visitor.fqdn
+        target_table_visitor.visit(self._insert_table)
 
         bound_tables = []
         for table in self._select_tables:
@@ -137,15 +154,13 @@ class DmlVisitor(Visitor):
             visitor.visit(table)
             bound_tables.append(visitor.fqdn)
 
-        self._select_tables = bound_tables
-
         bound_cols = []
         for column in self._select_columns:
             column_ref_visitor = ColumnRefVisitor()
             column_ref_visitor.visit(column)
             bound_cols.append(column_ref_visitor.name[0])
 
-        self._select_columns = bound_cols
+        return target_table_visitor.fqdn, bound_tables, bound_cols
 
 
 class SelectSourceVisitor(DmlVisitor):

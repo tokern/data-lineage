@@ -4,6 +4,7 @@ from typing import List, Mapping, Set
 
 from dbcat.catalog import Catalog, CatColumn, CatTable
 
+from data_lineage import ColumnNotFound, TableNotFound
 from data_lineage.parser.node import AcceptingNode
 from data_lineage.parser.table_visitor import (
     ColumnRefVisitor,
@@ -101,7 +102,13 @@ class Binder(Visitor, ABC):
                 bound_tables = bound_tables + list(self._alias_map[visitor.name].tables)
                 logging.debug("Added tables for alias {}".format(visitor.name))
             else:
-                candidate_table = self._catalog.search_table(**visitor.search_string)
+                try:
+                    candidate_table = self._catalog.search_table(
+                        **visitor.search_string
+                    )
+                except RuntimeError as err:
+                    logging.debug(str(err))
+                    raise TableNotFound(str(err))
                 logging.debug("Bound source table: {}".format(candidate_table))
 
                 self._alias_map[visitor.alias] = AliasContext(
@@ -118,8 +125,8 @@ class Binder(Visitor, ABC):
             alias_list = list(self._alias_map.values())
             if column_ref_visitor.is_qualified:
                 if column_ref_visitor.table_name not in self._alias_map:
-                    raise RuntimeError(
-                        "Table ({}) not found for column ({}).".format(
+                    raise TableNotFound(
+                        "{} not found for column ({}).".format(
                             column_ref_visitor.name[0], column_ref_visitor.name
                         )
                     )
@@ -150,10 +157,10 @@ class Binder(Visitor, ABC):
                     [column_ref_visitor.column_name]
                 )
             if len(candidate_columns) == 0:
-                raise RuntimeError("{} not found in any table".format(column))
+                raise ColumnNotFound("{} not found in any table".format(column))
             elif len(candidate_columns) > 1:
-                raise RuntimeError(
-                    "Ambiguous column name ({}). Multiple matches found".format(
+                raise ColumnNotFound(
+                    "{} Ambiguous column name. Multiple matches found".format(
                         column_ref_visitor.name
                     )
                 )

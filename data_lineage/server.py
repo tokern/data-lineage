@@ -18,8 +18,27 @@ from dbcat.catalog.models import (
 )
 from flask import Flask
 from flask_restful import Api, Resource, reqparse
+from pglast.parser import ParseError
+from werkzeug.exceptions import NotFound, UnprocessableEntity
 
+from data_lineage import ColumnNotFound, TableNotFound
 from data_lineage.parser import extract_lineage, parse, visit_dml_query
+
+
+class TableNotFoundHTTP(NotFound):
+    """Table not found in catalog"""
+
+    code = 441
+
+
+class ColumnNotFoundHTTP(NotFound):
+    """Column not found in catalog"""
+
+    code = 442
+
+
+class ParseErrorHTTP(UnprocessableEntity):
+    """Parser Error"""
 
 
 class Kedro(Resource):
@@ -92,9 +111,17 @@ class Parser(Resource):
     def post(self):
         args = self._parser.parse_args()
         logging.debug("Parse query: {}".format(args["query"]))
-        parsed = parse(args["query"], args["name"])
+        try:
+            parsed = parse(args["query"], args["name"])
+        except ParseError as error:
+            raise ParseErrorHTTP(description=str(error))
 
-        chosen_visitor = visit_dml_query(self._catalog, parsed)
+        try:
+            chosen_visitor = visit_dml_query(self._catalog, parsed)
+        except TableNotFound as table_error:
+            raise TableNotFoundHTTP(description=str(table_error))
+        except ColumnNotFound as column_error:
+            raise ColumnNotFoundHTTP(description=str(column_error))
 
         if chosen_visitor is not None:
             job_execution = extract_lineage(self._catalog, chosen_visitor, parsed)
