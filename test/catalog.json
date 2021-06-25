@@ -1,6 +1,6 @@
 {
   "name": "test",
-  "source_type": "json",
+  "source_type": "redshift",
   "schemata": [
     {
       "name": "default",
@@ -18,6 +18,10 @@
             },
             {
               "name": "views",
+              "data_type": "BIGINT"
+            },
+            {
+              "name": "bytes_sent",
               "data_type": "BIGINT"
             }
           ]

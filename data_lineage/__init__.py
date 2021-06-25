@@ -13,6 +13,14 @@ from furl import furl
 from data_lineage.graph import LineageGraph
 
 
+class SourceNotFound(Exception):
+    """Source not found in catalog"""
+
+
+class SchemaNotFound(Exception):
+    """Schema not found in catalog"""
+
+
 class TableNotFound(Exception):
     """Table not found in catalog"""
 
@@ -23,6 +31,18 @@ class ColumnNotFound(Exception):
 
 class ParseError(Exception):
     """Parser Error"""
+
+
+class SemanticError(Exception):
+    """Error due to mismatch in catalog data"""
+
+
+class NoResultFound(Exception):
+    """Raised when function returns no results"""
+
+
+class MultipleResultsFound(Exception):
+    """Raised when multiple results are found but expected only one or zero results"""
 
 
 class Graph:
@@ -145,6 +165,24 @@ class Catalog:
             raise RuntimeError(json_response["error"])
         return json_response["data"]
 
+    @staticmethod
+    def _one(response):
+        json_response = response.json()
+        logging.debug(json_response)
+        num_results = json_response["meta"]["total"]
+        if num_results == 0:
+            raise NoResultFound
+        elif num_results > 1:
+            raise MultipleResultsFound
+
+        return json_response["data"][0]
+
+    def _search_one(self, path: str, filters):
+        params = {"filter[objects]": json.dumps(filters)}
+        response = self._session.get(self._build_url(path), params=params)
+        response.raise_for_status()
+        return Catalog._one(response)
+
     def _search(self, path: str, search_string: str, clazz: Type[BaseModel]):
         filters = [dict(name="name", op="like", val="%{}%".format(search_string))]
         params = {"filter[objects]": json.dumps(filters)}
@@ -252,11 +290,40 @@ class Catalog:
             for item in response.json()["data"]
         ]
 
-    def get_source_by_name(self, name):
-        return self._search("sources", name, Source)
+    def get_source(self, name) -> Source:
+        filters = [dict(name="name", op="eq", val="{}".format(name))]
+        try:
+            payload = self._search_one("sources", filters)
+        except NoResultFound:
+            raise SourceNotFound("Source not found: source_name={}".format(name))
+        return Source(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=payload["relationships"],
+        )
 
-    def get_schema_by_name(self, name):
-        return self._search("schemata", name, Schema)
+    def get_schema(self, source_name: str, schema_name: str) -> Schema:
+        name_filter = dict(name="name", op="eq", val="{}".format(schema_name))
+        source_filter = dict(
+            name="source", op="has", val=dict(name="name", op="eq", val=source_name)
+        )
+        filters = {"and": [name_filter, source_filter]}
+        logging.debug(filters)
+        try:
+            payload = self._search_one("schemata", [filters])
+        except NoResultFound:
+            raise SchemaNotFound(
+                "Schema not found, (source_name={}, schema_name={})".format(
+                    source_name, schema_name
+                )
+            )
+        return Schema(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=payload["relationships"],
+        )
 
     def get_table_by_name(self, name):
         return self._search("tables", name, Table)
@@ -351,6 +418,43 @@ class Catalog:
         )
         return response.status_code == 200
 
+    def add_schema(self, name: str, source: Source) -> Schema:
+        data = {"name": name, "source_id": source.id}
+        payload = self._post(path="schemata", data=data, type="schemata")
+        return Schema(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=payload["relationships"],
+        )
+
+    def add_table(self, name: str, schema: Schema) -> Table:
+        data = {"name": name, "schema_id": schema.id}
+        payload = self._post(path="tables", data=data, type="tables")
+        return Table(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=payload["relationships"],
+        )
+
+    def add_column(
+        self, name: str, data_type: str, sort_order: int, table: Table
+    ) -> Column:
+        data = {
+            "name": name,
+            "table_id": table.id,
+            "data_type": data_type,
+            "sort_order": sort_order,
+        }
+        payload = self._post(path="columns", data=data, type="columns")
+        return Column(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=payload["relationships"],
+        )
+
     def add_job(self, name: str, context: Dict[Any, Any]) -> Job:
         data = {"name": name, "context": context}
         payload = self._post(path="jobs", data=data, type="jobs")
@@ -410,9 +514,10 @@ class Parser:
         self._base_url = furl(url) / "api/v1/parser"
         self._session = requests.Session()
 
-    def parse(self, query: str, name: str = None) -> JobExecution:
+    def parse(self, query: str, source: Source, name: str = None) -> JobExecution:
         response = self._session.post(
-            self._base_url, params={"query": query, "name": name}
+            self._base_url,
+            params={"query": query, "name": name, "source_id": source.id},
         )
         if response.status_code == 441:
             raise TableNotFound(response.json()["message"])
@@ -421,8 +526,8 @@ class Parser:
         elif response.status_code == 422:
             raise ParseError(response.json()["message"])
 
-        response.raise_for_status()
         logging.debug(response.json())
+        response.raise_for_status()
         payload = response.json()["data"]
         return JobExecution(
             session=self._session,
