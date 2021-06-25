@@ -126,11 +126,15 @@ def test_copy(target, query):
         "INSERT INTO page_lookup SELECT redirect_id, redirect_title, true_title, page_id, page_version FROM page_lookup_redirect",
         "INSERT INTO page_lookup SELECT page_lookup_redirect.* FROM page_lookup_redirect",
         "INSERT INTO page_lookup SELECT * FROM page_lookup_redirect",
+        'INSERT INTO "default".page_lookup SELECT * FROM page_lookup_redirect',
+        "SELECT * INTO page_lookup from page_lookup_redirect",
+        'SELECT * INTO "default".page_lookup from page_lookup_redirect',
     ],
 )
 def test_insert(save_catalog, query):
+    source = save_catalog.get_source("test")
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed)
+    visitor = visit_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 5
@@ -142,9 +146,10 @@ def test_insert(save_catalog, query):
 
 
 def test_insert_cols(save_catalog):
+    source = save_catalog.get_source("test")
     query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed)
+    visitor = visit_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 2
@@ -156,9 +161,10 @@ def test_insert_cols(save_catalog):
 
 
 def test_insert_with_join(save_catalog):
+    source = save_catalog.get_source("test")
     query = "insert into page_lookup_redirect select original_page.page_id redirect_id, original_page.page_title redirect_title, final_page.page_title as true_title, final_page.page_id, final_page.page_latest from page final_page join redirect on (redirect.page_title = final_page.page_title) join page original_page on (redirect.rd_from = original_page.page_id)"
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed)
+    visitor = visit_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 5
@@ -176,16 +182,38 @@ def test_insert_with_join(save_catalog):
         "with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select redirect_title, true_title, page_id, page_version from pln;",
         "with pln as (select * from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select redirect_title, true_title, page_id, page_version from pln;",
         "with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select * from pln;",
+        "with pln as (select redirect_title as t1, true_title as t2, page_id as t3, page_version as t4 from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select t1, t2, t3, t4 from pln;",
     ],
 )
 def test_with_clause(save_catalog, query):
+    source = save_catalog.get_source("test")
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed)
+    visitor = visit_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 4
     assert visitor.target_table.fqdn == ("test", "default", "page_lookup_redirect")
     assert len(visitor.source_columns) == 4
+    assert [table.fqdn for table in visitor.source_tables] == [
+        ("test", "default", "page_lookup_nonredirect")
+    ]
+
+
+def test_col_exprs(save_catalog):
+    query = """
+        INSERT INTO page_lookup_redirect(true_title)
+        SELECT
+            BTRIM(TO_CHAR(DATEADD (MONTH,-1,('20' ||MAX ("redirect_id") || '-01')::DATE)::DATE,'YY-MM')) AS "max_month"
+        FROM page_lookup_nonredirect;
+    """
+    source = save_catalog.get_source("test")
+    parsed = parse(query)
+    visitor = visit_dml_query(catalog=save_catalog, parsed=parsed, source=source)
+    assert visitor is not None
+
+    assert len(visitor.target_columns) == 1
+    assert visitor.target_table.fqdn == ("test", "default", "page_lookup_redirect")
+    assert len(visitor.source_columns) == 1
     assert [table.fqdn for table in visitor.source_tables] == [
         ("test", "default", "page_lookup_nonredirect")
     ]

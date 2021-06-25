@@ -1,30 +1,37 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
-from data_lineage.parser.node import AcceptingNode
-from data_lineage.parser.visitor import Visitor
+from data_lineage.parser.node import AcceptingNode, Missing
+from data_lineage.parser.visitor import ExprVisitor, QueryVisitor
 
 
-class TableVisitor(Visitor):
-    def __init__(self):
+class TableVisitor(QueryVisitor):
+    def __init__(self, expr_visitor_clazz: Type[ExprVisitor]):
         self._sources: List[AcceptingNode] = []
-        self._columns: List[AcceptingNode] = []
+        self._columns: List[ExprVisitor] = []
+        self._expr_visitor_clazz = expr_visitor_clazz
 
     @property
     def sources(self) -> List[AcceptingNode]:
         return self._sources
 
     @property
-    def columns(self) -> List[AcceptingNode]:
+    def columns(self) -> List[ExprVisitor]:
         return self._columns
+
+    def visit_res_target(self, node):
+        name = None
+        if node.name != Missing:
+            name = node.name.value
+
+        expr_visitor = self._expr_visitor_clazz(name)
+        expr_visitor.visit(node.val)
+        self._columns.append(expr_visitor)
 
     def visit_range_var(self, node):
         self._sources.append(node)
 
-    def visit_column_ref(self, node):
-        self._columns.append(node)
 
-
-class ColumnRefVisitor(Visitor):
+class ColumnRefVisitor(QueryVisitor):
     def __init__(self):
         self._name: List[str] = []
         self._is_a_star: bool = False
@@ -62,7 +69,7 @@ class ColumnRefVisitor(Visitor):
         self._is_a_star = True
 
 
-class RangeVarVisitor(Visitor):
+class RangeVarVisitor(QueryVisitor):
     def __init__(self):
         self._schema_name = None
         self._name = None

@@ -4,7 +4,13 @@ import logging
 import pytest
 from dbcat.catalog.models import ColumnLineage, Job, JobExecution, JobExecutionStatus
 
-from data_lineage import ColumnNotFound, ParseError, TableNotFound
+from data_lineage import (
+    ColumnNotFound,
+    ParseError,
+    SchemaNotFound,
+    SourceNotFound,
+    TableNotFound,
+)
 
 
 def test_get_sources(rest_catalog):
@@ -40,14 +46,14 @@ def test_get_columns(rest_catalog):
         assert column.sort_order is not None
         num += 1
 
-    assert num == 32
+    assert num == 33
 
 
 def test_get_source_by_id(rest_catalog):
     source = rest_catalog.get_source_by_id(1)
     assert source.name == "test"
     assert source.fqdn == "test"
-    assert source.source_type == "json"
+    assert source.source_type == "redshift"
 
 
 def test_get_schema_by_id(rest_catalog):
@@ -68,19 +74,16 @@ def test_get_column_by_id(rest_catalog):
     assert column.fqdn == ["test", "default", "pagecounts", "group"]
 
 
-def test_get_source_by_name(rest_catalog):
-    sources = list(rest_catalog.get_source_by_name("test"))
-    assert len(sources) == 1
-    source = sources[0]
+def test_get_source(rest_catalog):
+    source = rest_catalog.get_source("test")
     assert source.name == "test"
     assert source.id is not None
 
 
-def test_get_schema_by_name(rest_catalog):
-    schemata = list(rest_catalog.get_schema_by_name("default"))
-    assert len(schemata) == 1
-    assert schemata[0].name == "default"
-    assert schemata[0].id is not None
+def test_get_schema(rest_catalog):
+    schema = rest_catalog.get_schema("test", "default")
+    assert schema.name == "default"
+    assert schema.id is not None
 
 
 def test_get_table_by_name(rest_catalog):
@@ -101,7 +104,20 @@ def test_get_column_by_name(rest_catalog):
         assert column.sort_order is not None
         num += 1
 
-    assert num == 2
+    assert num == 3
+
+
+def test_get_source_exception(rest_catalog):
+    with pytest.raises(SourceNotFound):
+        rest_catalog.get_source("tes")
+
+
+@pytest.mark.parametrize(
+    "source_name, schema_name", [("test", "def"), ("tes", "default")]
+)
+def test_get_schema_exception(rest_catalog, source_name, schema_name):
+    with pytest.raises(SchemaNotFound):
+        rest_catalog.get_schema(source_name, schema_name)
 
 
 def test_add_source_pg(rest_catalog):
@@ -291,10 +307,12 @@ def test_api_main(graph_sdk, load_page_lookup_nonredirect_edges):
 
 
 def test_parser(rest_catalog, parser_sdk, graph_sdk, save_catalog):
+    source = rest_catalog.get_source("test")
     data = {
         "name": "LOAD page_lookup",
         "query": "INSERT INTO page_lookup SELECT plr.redirect_id, plr.redirect_title, plr.true_title, plr.page_id, "
         "plr.page_version FROM page_lookup_redirect plr",
+        "source": source,
     }
 
     job_execution = parser_sdk.parse(**data)
@@ -317,9 +335,11 @@ def test_parser(rest_catalog, parser_sdk, graph_sdk, save_catalog):
         "insert into page_lookup select plr.page_id, true_title from page_lookup_redirect",
     ],
 )
-def test_parser_table_not_found(parser_sdk, save_catalog, query):
+def test_parser_table_not_found(rest_catalog, parser_sdk, save_catalog, query):
+    source = rest_catalog.get_source("test")
+
     with pytest.raises(TableNotFound) as exc:
-        parser_sdk.parse(query=query)
+        parser_sdk.parse(query=query, source=source)
         logging.debug(exc)
 
 
@@ -330,16 +350,20 @@ def test_parser_table_not_found(parser_sdk, save_catalog, query):
         "insert into page_lookup(true_title) select title from page_lookup_redirect",
     ],
 )
-def test_parser_column_not_found(parser_sdk, save_catalog, query):
+def test_parser_column_not_found(rest_catalog, parser_sdk, save_catalog, query):
+    source = rest_catalog.get_source("test")
+
     with pytest.raises(ColumnNotFound) as exc:
-        parser_sdk.parse(query=query)
+        parser_sdk.parse(query=query, source=source)
         logging.debug(exc)
 
 
 @pytest.mark.parametrize(
     "query", ["insert page_lookup select * from page_lookup_redirect"]
 )
-def test_parser_parse_error(parser_sdk, save_catalog, query):
+def test_parser_parse_error(rest_catalog, parser_sdk, save_catalog, query):
+    source = rest_catalog.get_source("test")
+
     with pytest.raises(ParseError) as exc:
-        parser_sdk.parse(query=query)
+        parser_sdk.parse(query=query, source=source)
         logging.debug(exc)

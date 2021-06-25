@@ -25,7 +25,7 @@ def test_no_insert_column_graph(save_catalog, graph_sdk):
     )
     visitor = SelectSourceVisitor(parsed.name)
     parsed.node.accept(visitor)
-    visitor.bind(catalog)
+    visitor.bind(catalog, catalog.get_source("test"))
 
     job_execution = extract_lineage(catalog, visitor, parsed)
     graph = load_graph(graph_sdk, [job_execution.job_id])
@@ -43,15 +43,16 @@ def test_no_insert_column_graph(save_catalog, graph_sdk):
     ]
 
     expected_edges = [
-        ("column:4", "task:1"),
-        ("task:1", "column:9"),
+        ("column:5", "task:1"),
         ("task:1", "column:10"),
         ("task:1", "column:11"),
         ("task:1", "column:12"),
         ("task:1", "column:13"),
+        ("task:1", "column:14"),
+        ("column:7", "task:1"),
         ("column:6", "task:1"),
-        ("column:5", "task:1"),
     ]
+
     assert [(edge[0], edge[1]) for edge in list(edges(graph.graph))] == expected_edges
 
     expected_db_edges = [
@@ -90,7 +91,7 @@ def test_basic_column_graph(save_catalog, graph_sdk):
     parsed = parse(query, "basic_column_graph")
     visitor = SelectSourceVisitor(parsed.name)
     parsed.node.accept(visitor)
-    visitor.bind(catalog)
+    visitor.bind(catalog, catalog.get_source("test"))
 
     job_execution = extract_lineage(catalog, visitor, parsed)
     graph = load_graph(graph_sdk, [job_execution.job_id])
@@ -104,10 +105,10 @@ def test_basic_column_graph(save_catalog, graph_sdk):
     ]
 
     expected_edges = [
-        ("column:4", "task:2"),
-        ("task:2", "column:12"),
-        ("task:2", "column:13"),
         ("column:5", "task:2"),
+        ("task:2", "column:13"),
+        ("task:2", "column:14"),
+        ("column:6", "task:2"),
     ]
 
     assert [(edge[0], edge[1]) for edge in list(edges(graph.graph))] == expected_edges
@@ -146,9 +147,10 @@ def test_basic_column_graph(save_catalog, graph_sdk):
 @pytest.fixture(scope="module")
 def get_graph(save_catalog, parse_queries_fixture, graph_sdk):
     catalog = save_catalog
+    source = catalog.get_source("test")
     job_ids = []
     for parsed in parse_queries_fixture:
-        visitor = visit_dml_query(catalog, parsed)
+        visitor = visit_dml_query(catalog, parsed, source)
         job_execution = extract_lineage(catalog, visitor, parsed)
         job_ids.append(job_execution.job_id)
     graph = load_graph(graph_sdk, job_ids)
@@ -158,12 +160,16 @@ def get_graph(save_catalog, parse_queries_fixture, graph_sdk):
 def test_column_graph(get_graph):
     graph, catalog = get_graph
     assert sorted([node[1]["name"] for node in list(graph.graph.nodes(data=True))]) == [
+        "LOAD filtered_pagecounts",
         "LOAD normalized_pagecounts",
         "LOAD page_lookup",
         "LOAD page_lookup_nonredirect",
         "LOAD page_lookup_redirect",
         "test.default.filtered_pagecounts.bytes_sent",
+        "test.default.filtered_pagecounts.group",
+        "test.default.filtered_pagecounts.page_title",
         "test.default.filtered_pagecounts.views",
+        "test.default.normalized_pagecounts.bytes_sent",
         "test.default.normalized_pagecounts.page_id",
         "test.default.normalized_pagecounts.page_title",
         "test.default.normalized_pagecounts.page_url",
@@ -186,6 +192,9 @@ def test_column_graph(get_graph):
         "test.default.page_lookup_redirect.redirect_id",
         "test.default.page_lookup_redirect.redirect_title",
         "test.default.page_lookup_redirect.true_title",
+        "test.default.pagecounts.bytes_sent",
+        "test.default.pagecounts.page_title",
+        "test.default.pagecounts.views",
     ]
     # expected_edges = [
     #     ("column:4", "task:1"),

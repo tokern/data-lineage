@@ -107,6 +107,9 @@ class Parser(Resource):
         self._parser = reqparse.RequestParser()
         self._parser.add_argument("query", required=True, help="Query to parse")
         self._parser.add_argument("name", help="Name of the ETL job")
+        self._parser.add_argument(
+            "source_id", help="Source database of the query", required=True
+        )
 
     def post(self):
         args = self._parser.parse_args()
@@ -117,7 +120,9 @@ class Parser(Resource):
             raise ParseErrorHTTP(description=str(error))
 
         try:
-            chosen_visitor = visit_dml_query(self._catalog, parsed)
+            source = self._catalog.get_source_by_id(args["source_id"])
+            logging.debug("Parsing query for source {}".format(source))
+            chosen_visitor = visit_dml_query(self._catalog, parsed, source)
         except TableNotFound as table_error:
             raise TableNotFoundHTTP(description=str(table_error))
         except ColumnNotFound as column_error:

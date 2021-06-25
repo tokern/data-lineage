@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 
 import inflection
 
@@ -38,6 +39,57 @@ class Visitor:
     def visit_scalar(self, obj):
         pass
 
+
+class ExprVisitor(Visitor):
+    def __init__(self, alias: str = None):
+        self._alias: Optional[str] = alias
+        self._columns: List[AcceptingNode] = []
+
+    @property
+    def alias(self) -> Optional[str]:
+        return self._alias
+
+    @property
+    def columns(self) -> List[AcceptingNode]:
+        return self._columns
+
+    def visit_func_call(self, node):
+        self.visit(node.args)
+
+    def visit_type_cast(self, node):
+        self.visit(node.arg)
+
+    def visit_a_expr(self, node):
+        self.visit(node.lexpr)
+        self.visit(node.rexpr)
+
+    def visit_column_ref(self, node):
+        self._columns.append(node)
+
+
+class RedshiftExprVisitor(ExprVisitor):
+    class FuncNameVisitor(Visitor):
+        def __init__(self):
+            self._name = None
+
+        @property
+        def name(self):
+            return self._name
+
+        def visit_string(self, obj):
+            self._name = obj.str.value
+
+    def visit_func_call(self, node):
+        name_visitor = RedshiftExprVisitor.FuncNameVisitor()
+        name_visitor.visit(node.funcname)
+        if name_visitor.name == "dateadd":
+            self.visit(node.args[2])
+            return
+
+        self.visit(node.args)
+
+
+class QueryVisitor(Visitor):
     def visit_copy_stmt(self, node):
         self.visit(node.relation)
 
