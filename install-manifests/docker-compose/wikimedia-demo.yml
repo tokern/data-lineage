@@ -1,17 +1,29 @@
 version: '3.6'
 services:
-  tokern-demo-catalog:
-    image: tokern/demo-catalog:latest
-    container_name: tokern-demo-catalog
+  tokern-catalog:
+    image: postgres:13.2-alpine
+    container_name: tokern-catalog
     restart: unless-stopped
     networks:
       - tokern-internal
     volumes:
-    - db_data:/var/lib/postgresql/data
+    - tokern_wikimedia_catalog_data:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: catal0g_passw0rd
       POSTGRES_USER: catalog_user
       POSTGRES_DB: tokern
+  tokern-wikimedia:
+    image: tokern/demo-wikimedia:latest
+    container_name: tokern-demo-wikimedia
+    restart: unless-stopped
+    networks:
+      - tokern-internal
+    volumes:
+    - tokern_wikimedia_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: 3tld3v
+      POSTGRES_USER: etldev
+      POSTGRES_DB: wikimedia
   tokern-api:
     image: tokern/data-lineage:latest
     container_name: tokern-data-lineage
@@ -22,7 +34,7 @@ services:
       CATALOG_PASSWORD: catal0g_passw0rd
       CATALOG_USER: catalog_user
       CATALOG_DB: tokern
-      CATALOG_HOST: tokern-demo-catalog
+      CATALOG_HOST: tokern-catalog
       SERVER_ADDRESS: "0.0.0.0:4142"
   toker-viz:
     image: tokern/data-lineage-viz:latest
@@ -52,4 +64,5 @@ networks:
       - subnet: 10.11.0.0/24
 
 volumes:
-  db_data:
+  tokern_wikimedia_catalog_data:
+  tokern_wikimedia_data:
