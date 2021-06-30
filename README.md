@@ -27,15 +27,15 @@ example of how data lineage can be used in production.
 
 ## Quick Start
 
-Install a demo of using Docker and Docker Compose
+### Install a demo of using Docker and Docker Compose
 
 Download the docker-compose file from Github repository.
 
 
     # in a new directory run
-    wget https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose-demodb/docker-compose.yml
+    wget https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/catalog-demo.yml
     # or run
-    curl https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose-demodb/docker-compose.yml -o docker-compose.yml
+    curl https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/catalog-demo.yml -o docker-compose.yml
 
 
 Run docker-compose
@@ -57,6 +57,25 @@ Try out Tokern Lineage App
 
 Head to `http://localhost:8000/` to open the Tokern Lineage app
 
+### Install Tokern Lineage Engine
+
+    # in a new directory run
+    wget https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/tokern-lineage-engine.yml
+    # or run
+    curl https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/catalog-demo.yml -o tokern-lineage-engine.yml
+
+Run docker-compose
+   
+
+    docker-compose up -d
+
+
+If you want to use an external Postgres database, replace the following parameters in `tokern-lineage-engine.yml`:
+
+* CATALOG_HOST
+* CATALOG_USER
+* CATALOG_PASSWORD
+* CATALOG_DB
 
 ## Supported Technologies
 
@@ -66,7 +85,6 @@ Head to `http://localhost:8000/` to open the Tokern Lineage app
 
 ### Coming Soon
 
-* MySQL
 * SparkSQL
 * Presto
 

@@ -54,8 +54,9 @@ ALTER TABLE public.page_lookup OWNER TO etldev;
 --
 
 CREATE TABLE public.normalized_pagecounts (
-    "group" character varying,
+    page_id bigint,
     page_title character varying,
+    page_url character varying,
     views bigint,
     bytes_sent bigint
 );
