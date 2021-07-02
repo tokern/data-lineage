@@ -257,6 +257,7 @@ def load_page_lookup_nonredirect_edges(save_catalog):
 
     job = catalog.add_job(
         "insert_page_lookup_nonredirect",
+        catalog.get_source("test"),
         {"sql": "insert into page_lookup_nonredirect select from page"},
     )
     e1 = catalog.add_job_execution(

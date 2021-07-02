@@ -50,9 +50,11 @@ def visit_dml_query(
 
 
 def extract_lineage(
-    catalog: Catalog, visited_query: DmlVisitor, parsed: Parsed
+    catalog: Catalog, visited_query: DmlVisitor, source: CatSource, parsed: Parsed
 ) -> JobExecution:
-    job = catalog.add_job(parsed.name, {"query": parsed.query})
+    job = catalog.add_job(
+        name=parsed.name, source=source, context={"query": parsed.query}
+    )
     job_execution = catalog.add_job_execution(
         job, datetime.now(), datetime.now(), JobExecutionStatus.SUCCESS
     )
