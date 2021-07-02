@@ -1,11 +1,12 @@
 import logging
-from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from dbcat.catalog import Catalog
 from dbcat.catalog.models import CatSource, JobExecution, JobExecutionStatus
 from pglast.parser import ParseError
 
+from data_lineage import SemanticError
+from data_lineage.parser.binder import SelectBinder
 from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     DmlVisitor,
@@ -28,9 +29,32 @@ def parse_queries(queries: List[str]) -> List[Parsed]:
     return parsed
 
 
-def visit_dml_query(
+def analyze_dml_query(
     catalog: Catalog, parsed: Parsed, source: CatSource,
-) -> Optional[DmlVisitor]:
+) -> DmlVisitor:
+    chosen_visitor = visit_dml_query(parsed, source)
+    chosen_visitor.bind(catalog=catalog, source=source)
+    return chosen_visitor
+
+
+def parse_dml_query(
+    catalog: Catalog, parsed: Parsed, source: CatSource,
+) -> SelectBinder:
+    chosen_visitor = visit_dml_query(parsed, source)
+
+    select_binder = SelectBinder(
+        catalog,
+        source,
+        chosen_visitor.select_tables,
+        chosen_visitor.select_columns,
+        ("_U{}".format(i) for i in range(0, 1000)),
+    )
+    select_binder.bind()
+    return select_binder
+
+
+def visit_dml_query(parsed: Parsed, source: CatSource,) -> DmlVisitor:
+
     expr_visitor_clazz = ExprVisitor
     if source.source_type == "redshift":
         expr_visitor_clazz = RedshiftExprVisitor
@@ -44,19 +68,26 @@ def visit_dml_query(
     for v in [select_source_visitor, select_into_visitor, copy_from_visitor]:
         parsed.node.accept(v)
         if len(v.select_tables) > 0 and v.insert_table is not None:
-            v.bind(catalog, source)
             return v
-    return None
+    raise SemanticError("Query is not a DML Query")
 
 
 def extract_lineage(
-    catalog: Catalog, visited_query: DmlVisitor, source: CatSource, parsed: Parsed
+    catalog: Catalog,
+    visited_query: DmlVisitor,
+    source: CatSource,
+    parsed: Parsed,
+    start_time,
+    end_time,
 ) -> JobExecution:
     job = catalog.add_job(
         name=parsed.name, source=source, context={"query": parsed.query}
     )
     job_execution = catalog.add_job_execution(
-        job, datetime.now(), datetime.now(), JobExecutionStatus.SUCCESS
+        job=job,
+        started_at=start_time,
+        ended_at=end_time,
+        status=JobExecutionStatus.SUCCESS,
     )
     for source, target in zip(
         visited_query.source_columns, visited_query.target_columns

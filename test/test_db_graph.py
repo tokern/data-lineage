@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 import pytest
@@ -5,7 +6,7 @@ from dbcat.catalog import ColumnLineage
 from networkx import edges
 
 from data_lineage import load_graph
-from data_lineage.parser import extract_lineage, parse, visit_dml_query
+from data_lineage.parser import analyze_dml_query, extract_lineage, parse
 from data_lineage.parser.dml_visitor import SelectSourceVisitor
 
 logging.basicConfig(level=getattr(logging, "DEBUG"))
@@ -28,7 +29,14 @@ def test_no_insert_column_graph(save_catalog, graph_sdk):
     source = catalog.get_source("test")
     visitor.bind(catalog, source)
 
-    job_execution = extract_lineage(catalog, visitor, source, parsed)
+    job_execution = extract_lineage(
+        catalog,
+        visitor,
+        source,
+        parsed,
+        datetime.datetime.now(),
+        datetime.datetime.now(),
+    )
     graph = load_graph(graph_sdk, [job_execution.job_id])
 
     assert sorted([node[1]["name"] for node in list(graph.graph.nodes(data=True))]) == [
@@ -95,7 +103,14 @@ def test_basic_column_graph(save_catalog, graph_sdk):
     source = catalog.get_source("test")
     visitor.bind(catalog, source)
 
-    job_execution = extract_lineage(catalog, visitor, source, parsed)
+    job_execution = extract_lineage(
+        catalog,
+        visitor,
+        source,
+        parsed,
+        datetime.datetime.now(),
+        datetime.datetime.now(),
+    )
     graph = load_graph(graph_sdk, [job_execution.job_id])
 
     assert sorted([node[1]["name"] for node in list(graph.graph.nodes(data=True))]) == [
@@ -152,8 +167,15 @@ def get_graph(save_catalog, parse_queries_fixture, graph_sdk):
     source = catalog.get_source("test")
     job_ids = []
     for parsed in parse_queries_fixture:
-        visitor = visit_dml_query(catalog, parsed, source)
-        job_execution = extract_lineage(catalog, visitor, source, parsed)
+        visitor = analyze_dml_query(catalog, parsed, source)
+        job_execution = extract_lineage(
+            catalog,
+            visitor,
+            source,
+            parsed,
+            datetime.datetime.now(),
+            datetime.datetime.now(),
+        )
         job_ids.append(job_execution.job_id)
     graph = load_graph(graph_sdk, job_ids)
     yield graph, catalog

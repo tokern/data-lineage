@@ -86,25 +86,17 @@ def test_get_schema(rest_catalog):
     assert schema.id is not None
 
 
-def test_get_table_by_name(rest_catalog):
-    num = 0
-    for table in rest_catalog.get_table_by_name("normalized_pagecounts"):
-        assert table.id is not None
-        assert table.name == "normalized_pagecounts"
-        num += 1
-    assert num == 1
+def test_get_table(rest_catalog):
+    table = rest_catalog.get_table("test", "default", "normalized_pagecounts")
+    assert table.id is not None
+    assert table.name == "normalized_pagecounts"
 
 
-def test_get_column_by_name(rest_catalog):
-    num = 0
-    for column in rest_catalog.get_column_by_name("bytes_sent"):
-        assert column.id is not None
-        assert column.name is not None
-        # assert column.type is not None
-        assert column.sort_order is not None
-        num += 1
-
-    assert num == 3
+def test_get_column(rest_catalog):
+    column = rest_catalog.get_column("test", "default", "pagecounts", "bytes_sent")
+    assert column.id is not None
+    assert column.name is not None
+    assert column.sort_order is not None
 
 
 def test_get_source_exception(rest_catalog):
@@ -314,9 +306,11 @@ def test_parser(rest_catalog, parser_sdk, graph_sdk, save_catalog):
         "query": "INSERT INTO page_lookup SELECT plr.redirect_id, plr.redirect_title, plr.true_title, plr.page_id, "
         "plr.page_version FROM page_lookup_redirect plr",
         "source": source,
+        "start_time": datetime.datetime.now(),
+        "end_time": datetime.datetime.now(),
     }
 
-    job_execution = parser_sdk.parse(**data)
+    job_execution = parser_sdk.analyze(**data)
     assert job_execution is not None
 
     graph = graph_sdk.get([job_execution.job_id])
@@ -340,7 +334,12 @@ def test_parser_table_not_found(rest_catalog, parser_sdk, save_catalog, query):
     source = rest_catalog.get_source("test")
 
     with pytest.raises(TableNotFound) as exc:
-        parser_sdk.parse(query=query, source=source)
+        parser_sdk.analyze(
+            query=query,
+            source=source,
+            start_time=datetime.datetime.now(),
+            end_time=datetime.datetime.now(),
+        )
         logging.debug(exc)
 
 
@@ -355,7 +354,12 @@ def test_parser_column_not_found(rest_catalog, parser_sdk, save_catalog, query):
     source = rest_catalog.get_source("test")
 
     with pytest.raises(ColumnNotFound) as exc:
-        parser_sdk.parse(query=query, source=source)
+        parser_sdk.analyze(
+            query=query,
+            source=source,
+            start_time=datetime.datetime.now(),
+            end_time=datetime.datetime.now(),
+        )
         logging.debug(exc)
 
 
@@ -366,5 +370,10 @@ def test_parser_parse_error(rest_catalog, parser_sdk, save_catalog, query):
     source = rest_catalog.get_source("test")
 
     with pytest.raises(ParseError) as exc:
-        parser_sdk.parse(query=query, source=source)
+        parser_sdk.analyze(
+            query=query,
+            source=source,
+            start_time=datetime.datetime.now(),
+            end_time=datetime.datetime.now(),
+        )
         logging.debug(exc)

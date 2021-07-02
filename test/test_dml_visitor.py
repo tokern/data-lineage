@@ -1,6 +1,6 @@
 import pytest
 
-from data_lineage.parser import parse, parse_queries, visit_dml_query
+from data_lineage.parser import analyze_dml_query, parse, parse_dml_query, parse_queries
 from data_lineage.parser.dml_visitor import (
     CopyFromVisitor,
     SelectIntoVisitor,
@@ -134,7 +134,7 @@ def test_copy(target, query):
 def test_insert(save_catalog, query):
     source = save_catalog.get_source("test")
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 5
@@ -149,7 +149,7 @@ def test_insert_cols(save_catalog):
     source = save_catalog.get_source("test")
     query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 2
@@ -164,7 +164,7 @@ def test_insert_with_join(save_catalog):
     source = save_catalog.get_source("test")
     query = "insert into page_lookup_redirect select original_page.page_id redirect_id, original_page.page_title redirect_title, final_page.page_title as true_title, final_page.page_id, final_page.page_latest from page final_page join redirect on (redirect.page_title = final_page.page_title) join page original_page on (redirect.rd_from = original_page.page_id)"
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 5
@@ -188,7 +188,7 @@ def test_insert_with_join(save_catalog):
 def test_with_clause(save_catalog, query):
     source = save_catalog.get_source("test")
     parsed = parse(query)
-    visitor = visit_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(save_catalog, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 4
@@ -208,7 +208,7 @@ def test_col_exprs(save_catalog):
     """
     source = save_catalog.get_source("test")
     parsed = parse(query)
-    visitor = visit_dml_query(catalog=save_catalog, parsed=parsed, source=source)
+    visitor = analyze_dml_query(catalog=save_catalog, parsed=parsed, source=source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 1
@@ -229,3 +229,25 @@ def test_syntax_errors():
     parsed = parse_queries(queries)
 
     assert len(parsed) == 2
+
+
+def test_parse_query(save_catalog):
+    query = """
+    SELECT BTRIM(TO_CHAR(DATEADD (MONTH,-1,(\'20\' ||MAX ("group") || \'-01\')::DATE)::DATE,\'YY-MM\')) AS "max_month",
+        DATEADD(YEAR,-1,DATEADD (MONTH,-3,LAST_DAY (DATEADD (MONTH,-1,(\'20\' ||MAX ("group") || \'-01\')::DATE)::DATE))::DATE)::DATE AS "min_date",
+        DATEADD(MONTH,-3,LAST_DAY (DATEADD (MONTH,-1,(\'20\' ||MAX ("group") || \'-01\')::DATE)::DATE))::DATE AS "max_date",
+        page_title,
+        bytes_sent as mb_sent
+    INTO "new_table"
+    FROM pagecounts;
+    """
+    source = save_catalog.get_source("test")
+    parsed = parse(query)
+    binder = parse_dml_query(catalog=save_catalog, parsed=parsed, source=source)
+    assert [context.alias for context in binder.columns] == [
+        "max_month",
+        "min_date",
+        "max_date",
+        "page_title",
+        "mb_sent",
+    ]

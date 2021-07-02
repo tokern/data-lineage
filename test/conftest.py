@@ -6,7 +6,7 @@ from dbcat import Catalog as DbCatalog
 from dbcat import catalog_connection
 from dbcat.catalog import CatSource
 
-from data_lineage import Catalog, Graph, Parser
+from data_lineage import Analyze, Catalog, Graph
 from data_lineage.parser import parse
 from data_lineage.server import create_server
 
@@ -149,4 +149,4 @@ def graph_sdk(live_server):
 
 @pytest.fixture(scope="session")
 def parser_sdk(live_server):
-    yield Parser("http://{}:{}".format(live_server.host, live_server.port))
+    yield Analyze("http://{}:{}".format(live_server.host, live_server.port))

@@ -34,6 +34,7 @@ flask-restless-ng = "*"
 requests = "*"
 furl = "*"
 flask-restful = "*"
+psycopg2 = "^2.9.1"
 
 [tool.poetry.dev-dependencies]
 black = "==19.10b0"
