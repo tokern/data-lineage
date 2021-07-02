@@ -1,10 +1,16 @@
+import json
 import logging
 from typing import Any, Dict, List, Optional, Set, Tuple, Type
 
 from dbcat.catalog import Catalog, CatColumn, CatSource, CatTable
 
 from data_lineage import ColumnNotFound, SemanticError, TableNotFound
-from data_lineage.parser.binder import ColumnContext, SelectBinder, WithContext
+from data_lineage.parser.binder import (
+    CatTableEncoder,
+    ColumnContext,
+    SelectBinder,
+    WithContext,
+)
 from data_lineage.parser.node import AcceptingNode
 from data_lineage.parser.table_visitor import (
     ColumnRefVisitor,
@@ -102,12 +108,16 @@ class DmlVisitor(QueryVisitor):
             raise SemanticError("No target table found")
 
         if len(self.target_columns) == 0:
-            raise SemanticError("No target columns found")
+            raise SemanticError(
+                "No target columns found in {}".format(
+                    json.dumps(self.target_table, cls=CatTableEncoder)
+                )
+            )
 
         if len(self.target_columns) != len(binder.columns):
             raise SemanticError(
                 "No. of target columns({}) does not match no. of source columns({})".format(
-                    len(self.target_columns), len(self.select_columns)
+                    len(self.target_columns), len(binder.columns)
                 )
             )
 

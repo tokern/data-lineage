@@ -194,11 +194,9 @@ class Catalog:
         response = self._session.post(
             url=self._build_url(path), data=json.dumps(payload, default=str)
         )
+        response.raise_for_status()
         json_response = response.json()
         logging.debug(json_response)
-
-        if "error" in json_response:
-            raise RuntimeError(json_response["error"])
         return json_response["data"]
 
     def get_sources(self) -> Generator[Any, Any, None]:
@@ -304,7 +302,7 @@ class Catalog:
         )
 
     def get_schema(self, source_name: str, schema_name: str) -> Schema:
-        name_filter = dict(name="name", op="eq", val="{}".format(schema_name))
+        name_filter = dict(name="name", op="eq", val=schema_name)
         source_filter = dict(
             name="source", op="has", val=dict(name="name", op="eq", val=source_name)
         )
@@ -325,81 +323,51 @@ class Catalog:
             relationships=payload["relationships"],
         )
 
-    def get_table_by_name(self, name):
-        return self._search("tables", name, Table)
+    def get_table(self, source_name: str, schema_name: str, table_name: str) -> Table:
+        schema = self.get_schema(source_name, schema_name)
 
-    def get_column_by_name(self, name):
-        return self._search("columns", name, Column)
+        name_filter = dict(name="name", op="eq", val=table_name)
+        schema_id_filter = dict(name="schema_id", op="eq", val=str(schema.id))
+        filters = {"and": [name_filter, schema_id_filter]}
+        logging.debug(filters)
+        try:
+            payload = self._search_one("tables", [filters])
+        except NoResultFound:
+            raise TableNotFound(
+                "Table not found, (source_name={}, schema_name={}, table_name={})".format(
+                    source_name, schema_name, table_name
+                )
+            )
+        return Table(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=payload["relationships"],
+        )
+
+    def get_columns_for_table(self, table: Table):
+        return self._index("tables/{}/columns".format(table.id), Column)
 
     def get_column(self, source_name, schema_name, table_name, column_name):
-        # Get Source
-        name_filter = dict(name="name", op="eq", val="{}".format(source_name))
-        params = {"filter[singleton]": 1, "filter[objects]": json.dumps([name_filter])}
-        response = self._session.get(self._build_url("sources"), params=params)
-        logging.debug(json.dumps(response.json(), indent=2))
-        payload = response.json()["data"][0]
-        source = Source(
+        table = self.get_table(source_name, schema_name, table_name)
+        name_filter = dict(name="name", op="eq", val=column_name)
+        table_filter = dict(name="table_id", op="eq", val=str(table.id))
+        filters = {"and": [name_filter, table_filter]}
+        logging.debug(filters)
+        try:
+            payload = self._search_one("columns", [filters])
+        except NoResultFound:
+            raise ColumnNotFound(
+                "Column not found, (source_name={}, schema_name={}, table_name={}, column_name={})".format(
+                    source_name, schema_name, table_name, column_name
+                )
+            )
+        return Column(
             session=self._session,
             attributes=payload["attributes"],
             obj_id=payload["id"],
             relationships=payload["relationships"],
         )
-
-        schema_name_filter = dict(name="name", op="eq", val="{}".format(schema_name))
-        source_filter = dict(name="source_id", op="eq", val="{}".format(source.id))
-        schema_params = {
-            "filter[singleton]": 1,
-            "filter[objects]": json.dumps(
-                [{"and": [schema_name_filter, source_filter]}]
-            ),
-        }
-        response = self._session.get(self._build_url("schemata"), params=schema_params)
-        logging.debug(json.dumps(response.json(), indent=2))
-        payload = response.json()["data"][0]
-        schema = Schema(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
-
-        table_name_filter = dict(name="name", op="eq", val="{}".format(table_name))
-        schema_filter = dict(name="schema_id", op="eq", val="{}".format(schema.id))
-        table_params = {
-            "filter[singleton]": 1,
-            "filter[objects]": json.dumps(
-                [{"and": [table_name_filter, schema_filter]}]
-            ),
-        }
-        response = self._session.get(self._build_url("tables"), params=table_params)
-        logging.debug(json.dumps(response.json(), indent=2))
-        payload = response.json()["data"][0]
-        table = Table(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
-
-        column_name_filter = dict(name="name", op="eq", val="{}".format(column_name))
-        table_filter = dict(name="table_id", op="eq", val="{}".format(table.id))
-        column_params = {
-            "filter[singleton]": 1,
-            "filter[objects]": json.dumps(
-                [{"and": [column_name_filter, table_filter]}]
-            ),
-        }
-        response = self._session.get(self._build_url("columns"), params=column_params)
-        logging.debug(json.dumps(response.json(), indent=2))
-        payload = response.json()["data"][0]
-        column = Column(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
-
-        return column
 
     def add_source(self, name: str, source_type: str, **kwargs) -> Source:
         data = {"name": name, "source_type": source_type, **kwargs}
@@ -509,15 +477,28 @@ class Catalog:
         )
 
 
-class Parser:
+class Analyze:
     def __init__(self, url: str):
-        self._base_url = furl(url) / "api/v1/parser"
+        self._base_url = furl(url) / "api/v1/analyze"
         self._session = requests.Session()
 
-    def parse(self, query: str, source: Source, name: str = None) -> JobExecution:
+    def analyze(
+        self,
+        query: str,
+        source: Source,
+        start_time: datetime.datetime,
+        end_time: datetime.datetime,
+        name: str = None,
+    ) -> JobExecution:
         response = self._session.post(
             self._base_url,
-            params={"query": query, "name": name, "source_id": source.id},
+            params={
+                "query": query,
+                "name": name,
+                "source_id": source.id,
+                "start_time": start_time.isoformat(),
+                "end_time": end_time.isoformat(),
+            },
         )
         if response.status_code == 441:
             raise TableNotFound(response.json()["message"])
@@ -525,6 +506,8 @@ class Parser:
             raise ColumnNotFound(response.json()["message"])
         elif response.status_code == 422:
             raise ParseError(response.json()["message"])
+        elif response.status_code == 443:
+            raise SemanticError(response.json()["message"])
 
         logging.debug(response.json())
         response.raise_for_status()
@@ -535,3 +518,17 @@ class Parser:
             obj_id=payload["id"],
             relationships=None,
         )
+
+
+class Parse:
+    def __init__(self, url: str):
+        self._base_url = furl(url) / "api/v1/parse"
+        self._session = requests.Session()
+
+    def parse(self, query: str, source: Source):
+        response = self._session.post(
+            self._base_url, params={"query": query, "source_id": source.id},
+        )
+        logging.debug(response.json())
+        response.raise_for_status()
+        return response.json()

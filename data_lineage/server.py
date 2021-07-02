@@ -21,8 +21,13 @@ from flask_restful import Api, Resource, reqparse
 from pglast.parser import ParseError
 from werkzeug.exceptions import NotFound, UnprocessableEntity
 
-from data_lineage import ColumnNotFound, TableNotFound
-from data_lineage.parser import extract_lineage, parse, visit_dml_query
+from data_lineage import ColumnNotFound, SemanticError, TableNotFound
+from data_lineage.parser import (
+    analyze_dml_query,
+    extract_lineage,
+    parse,
+    parse_dml_query,
+)
 
 
 class TableNotFoundHTTP(NotFound):
@@ -39,6 +44,12 @@ class ColumnNotFoundHTTP(NotFound):
 
 class ParseErrorHTTP(UnprocessableEntity):
     """Parser Error"""
+
+
+class SemanticErrorHTTP(UnprocessableEntity):
+    """Semantic Error"""
+
+    code = 443
 
 
 class Kedro(Resource):
@@ -94,19 +105,69 @@ class Scanner(Resource):
         self._parser.add_argument("id", required=True, help="ID of the resource")
 
     def post(self):
+        try:
+            args = self._parser.parse_args()
+            logging.debug("Args for scanning: {}".format(args))
+            source = self._catalog.get_source_by_id(int(args["id"]))
+            DbScanner(self._catalog, source).scan()
+            return "Scanned {}".format(source.fqdn), 200
+        finally:
+            self._catalog.scoped_session.remove()
+
+
+class Parse(Resource):
+    def __init__(self, catalog: Catalog):
+        self._catalog = catalog
+        self._parser = reqparse.RequestParser()
+        self._parser.add_argument("query", required=True, help="Query to parse")
+        self._parser.add_argument(
+            "source_id", help="Source database of the query", required=True
+        )
+
+    def post(self):
         args = self._parser.parse_args()
-        logging.debug("Args for scanning: {}".format(args))
-        source = self._catalog.get_source_by_id(int(args["id"]))
-        DbScanner(self._catalog, source).scan()
-        return "Scanned {}".format(source.fqdn), 200
+        logging.debug("Parse query: {}".format(args["query"]))
+        try:
+            parsed = parse(args["query"], "parse_api")
+        except ParseError as error:
+            raise ParseErrorHTTP(description=str(error))
+
+        try:
+            source = self._catalog.get_source_by_id(args["source_id"])
+            logging.debug("Parsing query for source {}".format(source))
+            binder = parse_dml_query(
+                catalog=self._catalog, parsed=parsed, source=source
+            )
+
+            return (
+                {
+                    "select_tables": [table.name for table in binder.tables],
+                    "select_columns": [context.alias for context in binder.columns],
+                },
+                200,
+            )
+        except TableNotFound as table_error:
+            raise TableNotFoundHTTP(description=str(table_error))
+        except ColumnNotFound as column_error:
+            raise ColumnNotFoundHTTP(description=str(column_error))
+        except SemanticError as semantic_error:
+            raise SemanticErrorHTTP(description=str(semantic_error))
+        finally:
+            self._catalog.scoped_session.remove()
 
 
-class Parser(Resource):
+class Analyze(Resource):
     def __init__(self, catalog: Catalog):
         self._catalog = catalog
         self._parser = reqparse.RequestParser()
         self._parser.add_argument("query", required=True, help="Query to parse")
         self._parser.add_argument("name", help="Name of the ETL job")
+        self._parser.add_argument(
+            "start_time", required=True, help="Start time of the task"
+        )
+        self._parser.add_argument(
+            "end_time", required=True, help="End time of the task"
+        )
         self._parser.add_argument(
             "source_id", help="Source database of the query", required=True
         )
@@ -122,15 +183,14 @@ class Parser(Resource):
         try:
             source = self._catalog.get_source_by_id(args["source_id"])
             logging.debug("Parsing query for source {}".format(source))
-            chosen_visitor = visit_dml_query(self._catalog, parsed, source)
-        except TableNotFound as table_error:
-            raise TableNotFoundHTTP(description=str(table_error))
-        except ColumnNotFound as column_error:
-            raise ColumnNotFoundHTTP(description=str(column_error))
-
-        if chosen_visitor is not None:
+            chosen_visitor = analyze_dml_query(self._catalog, parsed, source)
             job_execution = extract_lineage(
-                self._catalog, chosen_visitor, source, parsed
+                catalog=self._catalog,
+                visited_query=chosen_visitor,
+                source=source,
+                parsed=parsed,
+                start_time=datetime.datetime.fromisoformat(args["start_time"]),
+                end_time=datetime.datetime.fromisoformat(args["end_time"]),
             )
 
             return (
@@ -152,8 +212,14 @@ class Parser(Resource):
                 },
                 200,
             )
-
-        return {"data": {"error": "Query is not a DML Query"}}, 400
+        except TableNotFound as table_error:
+            raise TableNotFoundHTTP(description=str(table_error))
+        except ColumnNotFound as column_error:
+            raise ColumnNotFoundHTTP(description=str(column_error))
+        except SemanticError as semantic_error:
+            raise SemanticErrorHTTP(description=str(semantic_error))
+        finally:
+            self._catalog.scoped_session.remove()
 
 
 class Server(gunicorn.app.base.BaseApplication):
@@ -271,7 +337,11 @@ def create_server(
         resource_class_kwargs={"catalog": catalog},
     )
     restful_manager.add_resource(
-        Parser, "/api/v1/parser", resource_class_kwargs={"catalog": catalog}
+        Analyze, "/api/v1/analyze", resource_class_kwargs={"catalog": catalog}
+    )
+
+    restful_manager.add_resource(
+        Parse, "/api/v1/parse", resource_class_kwargs={"catalog": catalog}
     )
 
     for rule in app.url_map.iter_rules():

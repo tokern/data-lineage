@@ -31,7 +31,7 @@ all = ["flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.
 
 [[package]]
 name = "amundsen-databuilder"
-version = "5.2.0"
+version = "5.2.2"
 description = "Amundsen Data builder"
 category = "main"
 optional = false
@@ -707,7 +707,7 @@ python-versions = "*"
 
 [[package]]
 name = "ipykernel"
-version = "6.0.0"
+version = "6.0.1"
 description = "IPython Kernel for Jupyter"
 category = "dev"
 optional = false
@@ -1524,6 +1524,14 @@ python-versions = "*"
 six = ">=1.9"
 
 [[package]]
+name = "psycopg2"
+version = "2.9.1"
+description = "psycopg2 - Python-PostgreSQL Database Adapter"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "psycopg2-binary"
 version = "2.9.1"
 description = "psycopg2 - Python-PostgreSQL Database Adapter"
@@ -2317,7 +2325,7 @@ notebook = ">=4.4.1"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "b2a2681deb2ae1ad9aecc79b464582ea08df7e1bb2a24d1bc1df5d241ca02d1b"
+content-hash = "ac8e7db8b64f7836ca25a96d0e4f79974e4c989bb14533db3ebbe144a2425baf"
 
 [metadata.files]
 alembic = [
@@ -2329,8 +2337,8 @@ amundsen-common = [
     {file = "amundsen_common-0.18.1-py3-none-any.whl", hash = "sha256:c36685cb43cfb65654e955a6c106b51d0176e5192d7c8d00336f25a440cf55cf"},
 ]
 amundsen-databuilder = [
-    {file = "amundsen-databuilder-5.2.0.tar.gz", hash = "sha256:d265b1a0f1d05f59441ddad17f7507a7c1809cc24f290901ded73b31bce30231"},
-    {file = "amundsen_databuilder-5.2.0-py3-none-any.whl", hash = "sha256:f65658739b1625a51edfb292e803c3d9286b0f1dcc07fc479f37158804f3631a"},
+    {file = "amundsen-databuilder-5.2.2.tar.gz", hash = "sha256:3a9f5fc05eabc134908ab0ed788bd5a2dedd598d379c8095cf72882ec2d69374"},
+    {file = "amundsen_databuilder-5.2.2-py3-none-any.whl", hash = "sha256:d4e8bbc5de7e941f7bc42a4cd8176dfdc0018a061a37bfdb5dd5ae7e7647e088"},
 ]
 amundsen-rds = [
     {file = "amundsen-rds-0.0.5.tar.gz", hash = "sha256:14336e0c5d2d3f726da6a7746f8ffb2b1ecb02668412494a8e3da03c26ef25f9"},
@@ -2729,8 +2737,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 ipykernel = [
-    {file = "ipykernel-6.0.0-py3-none-any.whl", hash = "sha256:b2c82b8a961a60c5d8bc380be8fefc0be1abe68325429fad7c36d2d7ae315cf0"},
-    {file = "ipykernel-6.0.0.tar.gz", hash = "sha256:65433238970dc6414a3ebca6f7a819fed0551efba9ac1da816ada778eb47ec65"},
+    {file = "ipykernel-6.0.1-py3-none-any.whl", hash = "sha256:9a8576cb70a70cc8c63b0b6671e5f4767917071204653a5934e9b2c8680cec74"},
+    {file = "ipykernel-6.0.1.tar.gz", hash = "sha256:a4f51c53c7be3f93d75c25839183fa2dfa24908fc650dfd023b276c7a080dc73"},
 ]
 ipython = [
     {file = "ipython-7.25.0-py3-none-any.whl", hash = "sha256:aa21412f2b04ad1a652e30564fff6b4de04726ce875eab222c8430edc6db383a"},
@@ -3107,6 +3115,17 @@ protobuf = [
     {file = "protobuf-3.17.3-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:e76d9686e088fece2450dbc7ee905f9be904e427341d289acbe9ad00b78ebd47"},
     {file = "protobuf-3.17.3-py2.py3-none-any.whl", hash = "sha256:2bfb815216a9cd9faec52b16fd2bfa68437a44b67c56bee59bc3926522ecb04e"},
     {file = "protobuf-3.17.3.tar.gz", hash = "sha256:72804ea5eaa9c22a090d2803813e280fb273b62d5ae497aaf3553d141c4fdd7b"},
+]
+psycopg2 = [
+    {file = "psycopg2-2.9.1-cp36-cp36m-win32.whl", hash = "sha256:7f91312f065df517187134cce8e395ab37f5b601a42446bdc0f0d51773621854"},
+    {file = "psycopg2-2.9.1-cp36-cp36m-win_amd64.whl", hash = "sha256:830c8e8dddab6b6716a4bf73a09910c7954a92f40cf1d1e702fb93c8a919cc56"},
+    {file = "psycopg2-2.9.1-cp37-cp37m-win32.whl", hash = "sha256:89409d369f4882c47f7ea20c42c5046879ce22c1e4ea20ef3b00a4dfc0a7f188"},
+    {file = "psycopg2-2.9.1-cp37-cp37m-win_amd64.whl", hash = "sha256:7640e1e4d72444ef012e275e7b53204d7fab341fb22bc76057ede22fe6860b25"},
+    {file = "psycopg2-2.9.1-cp38-cp38-win32.whl", hash = "sha256:079d97fc22de90da1d370c90583659a9f9a6ee4007355f5825e5f1c70dffc1fa"},
+    {file = "psycopg2-2.9.1-cp38-cp38-win_amd64.whl", hash = "sha256:2c992196719fadda59f72d44603ee1a2fdcc67de097eea38d41c7ad9ad246e62"},
+    {file = "psycopg2-2.9.1-cp39-cp39-win32.whl", hash = "sha256:2087013c159a73e09713294a44d0c8008204d06326006b7f652bef5ace66eebb"},
+    {file = "psycopg2-2.9.1-cp39-cp39-win_amd64.whl", hash = "sha256:bf35a25f1aaa8a3781195595577fcbb59934856ee46b4f252f56ad12b8043bcf"},
+    {file = "psycopg2-2.9.1.tar.gz", hash = "sha256:de5303a6f1d0a7a34b9d40e4d3bef684ccc44a49bbe3eb85e3c0bffb4a131b7c"},
 ]
 psycopg2-binary = [
     {file = "psycopg2-binary-2.9.1.tar.gz", hash = "sha256:b0221ca5a9837e040ebf61f48899926b5783668b7807419e4adae8175a31f773"},

@@ -1,5 +1,7 @@
+import json
 import logging
 from abc import ABC, abstractmethod
+from json import JSONEncoder
 from typing import List, Mapping, Set
 
 from dbcat.catalog import Catalog, CatColumn, CatSource, CatTable
@@ -71,6 +73,19 @@ class WithContext(AliasContext):
             return self._columns
 
 
+class CatTableEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, CatTable):
+            return {
+                "name": obj.name,
+                "schema": obj.schema.name,
+                "source": obj.schema.source.name,
+            }
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+
 class Binder(ABC):
     @property
     @abstractmethod
@@ -95,13 +110,13 @@ class Binder(ABC):
         catalog: Catalog,
         source: CatSource,
         alias_generator,
-        alias_map: Mapping[str, AliasContext] = {},
+        alias_map: Mapping[str, AliasContext] = None,
     ):
         self._catalog = catalog
         self._source = source
         self._tables: Set[CatTable] = set()
         self._columns: List[ColumnContext] = []
-        self._alias_map: Mapping[str, AliasContext] = alias_map
+        self._alias_map: Mapping[str, AliasContext] = alias_map or {}
         self._alias_generator = alias_generator
 
     def bind(self):
@@ -199,13 +214,19 @@ class Binder(ABC):
                 )
         else:
             candidate_columns: List[ColumnContext] = []
+            global_table_list: List[CatTable] = []
             for alias_context in alias_list:
                 candidate_columns = candidate_columns + alias_context.get_columns(
                     [column_ref_visitor.column_name]
                 )
+                global_table_list = global_table_list + list(alias_context.tables)
+
             if len(candidate_columns) == 0:
                 raise ColumnNotFound(
-                    "{} not found in any table".format(column_ref_visitor.column_name)
+                    "{} not found in the following tables: {}".format(
+                        column_ref_visitor.column_name,
+                        json.dumps(global_table_list, cls=CatTableEncoder),
+                    )
                 )
             elif len(candidate_columns) > 1:
                 raise ColumnNotFound(
@@ -226,7 +247,7 @@ class SelectBinder(Binder):
         tables: List[AcceptingNode],
         columns: List[ExprVisitor],
         alias_generator,
-        alias_map: Mapping[str, AliasContext] = {},
+        alias_map: Mapping[str, AliasContext] = None,
     ):
         super(SelectBinder, self).__init__(catalog, source, alias_generator, alias_map)
         self._table_nodes: List[AcceptingNode] = tables
