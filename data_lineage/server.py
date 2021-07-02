@@ -129,7 +129,9 @@ class Parser(Resource):
             raise ColumnNotFoundHTTP(description=str(column_error))
 
         if chosen_visitor is not None:
-            job_execution = extract_lineage(self._catalog, chosen_visitor, parsed)
+            job_execution = extract_lineage(
+                self._catalog, chosen_visitor, source, parsed
+            )
 
             return (
                 {

@@ -38,7 +38,7 @@ class AliasContext:
     def tables(self):
         return self._tables
 
-    def get_columns(self, column_names: List[str] = []) -> List[ColumnContext]:
+    def get_columns(self, column_names: List[str] = None) -> List[ColumnContext]:
         columns: List[CatColumn] = []
         for table in self._tables:
             columns = columns + self._catalog.get_columns_for_table(table, column_names)
@@ -59,8 +59,8 @@ class WithContext(AliasContext):
         super(WithContext, self).__init__(catalog, alias, tables)
         self._columns = columns
 
-    def get_columns(self, column_names: List[str] = []) -> List[ColumnContext]:
-        if len(column_names) > 0:
+    def get_columns(self, column_names: List[str] = None) -> List[ColumnContext]:
+        if column_names is not None:
             filtered = []
             for column in self._columns:
                 if column.alias in column_names:

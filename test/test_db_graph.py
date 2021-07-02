@@ -25,9 +25,10 @@ def test_no_insert_column_graph(save_catalog, graph_sdk):
     )
     visitor = SelectSourceVisitor(parsed.name)
     parsed.node.accept(visitor)
-    visitor.bind(catalog, catalog.get_source("test"))
+    source = catalog.get_source("test")
+    visitor.bind(catalog, source)
 
-    job_execution = extract_lineage(catalog, visitor, parsed)
+    job_execution = extract_lineage(catalog, visitor, source, parsed)
     graph = load_graph(graph_sdk, [job_execution.job_id])
 
     assert sorted([node[1]["name"] for node in list(graph.graph.nodes(data=True))]) == [
@@ -91,9 +92,10 @@ def test_basic_column_graph(save_catalog, graph_sdk):
     parsed = parse(query, "basic_column_graph")
     visitor = SelectSourceVisitor(parsed.name)
     parsed.node.accept(visitor)
-    visitor.bind(catalog, catalog.get_source("test"))
+    source = catalog.get_source("test")
+    visitor.bind(catalog, source)
 
-    job_execution = extract_lineage(catalog, visitor, parsed)
+    job_execution = extract_lineage(catalog, visitor, source, parsed)
     graph = load_graph(graph_sdk, [job_execution.job_id])
 
     assert sorted([node[1]["name"] for node in list(graph.graph.nodes(data=True))]) == [
@@ -151,7 +153,7 @@ def get_graph(save_catalog, parse_queries_fixture, graph_sdk):
     job_ids = []
     for parsed in parse_queries_fixture:
         visitor = visit_dml_query(catalog, parsed, source)
-        job_execution = extract_lineage(catalog, visitor, parsed)
+        job_execution = extract_lineage(catalog, visitor, source, parsed)
         job_ids.append(job_execution.job_id)
     graph = load_graph(graph_sdk, job_ids)
     yield graph, catalog
