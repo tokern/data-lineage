@@ -22,7 +22,7 @@ repository="https://github.com/tokern/data-lineage/"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pglast = "==1.18"
+pglast = "*"
 inflection = "*"
 networkx = "*"
 click = "*"

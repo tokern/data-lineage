@@ -3,6 +3,8 @@ import logging
 from typing import Any, Dict, List, Optional, Set, Tuple, Type
 
 from dbcat.catalog import Catalog, CatColumn, CatSource, CatTable
+from pglast import Node
+from pglast.visitors import Skip, Visitor
 
 from data_lineage import ColumnNotFound, SemanticError, TableNotFound
 from data_lineage.parser.binder import (
@@ -11,25 +13,24 @@ from data_lineage.parser.binder import (
     SelectBinder,
     WithContext,
 )
-from data_lineage.parser.node import AcceptingNode
-from data_lineage.parser.table_visitor import (
+from data_lineage.parser.visitor import (
     ColumnRefVisitor,
+    ExprVisitor,
     RangeVarVisitor,
     TableVisitor,
 )
-from data_lineage.parser.visitor import ExprVisitor, QueryVisitor
 
 
-class DmlVisitor(QueryVisitor):
+class DmlVisitor(Visitor):
     def __init__(self, name: str, expr_visitor_clazz: Type[ExprVisitor]):
         self._name = name
-        self._insert_table: Optional[AcceptingNode] = None
+        self._insert_table: Optional[Node] = None
         self._insert_columns: List[str] = []
         self._target_table: Optional[CatTable] = None
         self._target_columns: List[CatColumn] = []
         self._source_tables: Set[CatTable] = set()
         self._source_columns: List[ColumnContext] = []
-        self._select_tables: List[AcceptingNode] = []
+        self._select_tables: List[Node] = []
         self._select_columns: List[ExprVisitor] = []
         self._with_aliases: Dict[str, Dict[str, Any]] = {}
         self._alias_map: Dict[str, WithContext] = {}
@@ -41,7 +42,7 @@ class DmlVisitor(QueryVisitor):
         return self._name
 
     @property
-    def insert_table(self) -> Optional[AcceptingNode]:
+    def insert_table(self) -> Optional[Node]:
         return self._insert_table
 
     @property
@@ -61,28 +62,31 @@ class DmlVisitor(QueryVisitor):
         return self._source_columns
 
     @property
-    def select_tables(self) -> List[AcceptingNode]:
+    def select_tables(self) -> List[Node]:
         return self._select_tables
 
     @property
     def select_columns(self) -> List[ExprVisitor]:
         return self._select_columns
 
-    def visit_range_var(self, node):
+    def visit_RangeVar(self, ancestors, node):
         self._insert_table = node
+        return Skip
 
-    def visit_res_target(self, node):
-        self._insert_columns.append(node.name.value)
+    def visit_ResTarget(self, ancestors, node):
+        self._insert_columns.append(node.name)
+        return Skip
 
-    def visit_common_table_expr(self, node):
-        with_alias = node.ctename.value
+    def visit_CommonTableExpr(self, ancestors, node):
+        with_alias = node.ctename
         table_visitor = TableVisitor(self.expr_visitor_clazz)
-        table_visitor.visit(node.ctequery)
+        table_visitor(node.ctequery)
 
         self._with_aliases[with_alias] = {
             "tables": table_visitor.sources,
             "columns": table_visitor.columns,
         }
+        return Skip
 
     def bind(self, catalog: Catalog, source: CatSource):
         self._bind_target(catalog, source)
@@ -126,7 +130,7 @@ class DmlVisitor(QueryVisitor):
 
     def _bind_target(self, catalog: Catalog, source: CatSource):
         target_table_visitor = RangeVarVisitor()
-        target_table_visitor.visit(self._insert_table)
+        target_table_visitor(self._insert_table)
         logging.debug("Searching for: {}".format(target_table_visitor.search_string))
         try:
             self._target_table = catalog.search_table(
@@ -189,19 +193,19 @@ class DmlVisitor(QueryVisitor):
         List[Tuple[Optional[str], str]],
     ]:
         target_table_visitor = RangeVarVisitor()
-        target_table_visitor.visit(self._insert_table)
+        target_table_visitor(self._insert_table)
 
         bound_tables = []
         for table in self._select_tables:
             visitor = RangeVarVisitor()
-            visitor.visit(table)
+            visitor(table)
             bound_tables.append(visitor.fqdn)
 
         bound_cols = []
         for expr_visitor in self._select_columns:
             for column in expr_visitor.columns:
                 column_ref_visitor = ColumnRefVisitor()
-                column_ref_visitor.visit(column)
+                column_ref_visitor(column)
                 bound_cols.append(column_ref_visitor.name[0])
 
         return target_table_visitor.fqdn, bound_tables, bound_cols
@@ -211,30 +215,23 @@ class SelectSourceVisitor(DmlVisitor):
     def __init__(self, name: str, expr_visitor_clazz: Type[ExprVisitor] = ExprVisitor):
         super(SelectSourceVisitor, self).__init__(name, expr_visitor_clazz)
 
-    def visit_select_stmt(self, node):
+    def visit_SelectStmt(self, ancestors, node):
         table_visitor = TableVisitor(self.expr_visitor_clazz)
-        table_visitor.visit(node)
+        table_visitor(node)
         self._select_tables = table_visitor.sources
         self._select_columns = table_visitor.columns
+        return Skip
 
 
 class SelectIntoVisitor(DmlVisitor):
     def __init__(self, name: str, expr_visitor_clazz: Type[ExprVisitor] = ExprVisitor):
         super(SelectIntoVisitor, self).__init__(name, expr_visitor_clazz)
 
-    def visit_select_stmt(self, node):
-        super(SelectIntoVisitor, self).visit(node.intoClause)
+    def visit_SelectStmt(self, ancestors, node):
+        super().__call__(node.intoClause)
         table_visitor = TableVisitor(self.expr_visitor_clazz)
-        table_visitor.visit(node.targetList)
-        table_visitor.visit(node.fromClause)
+        table_visitor(node.targetList)
+        table_visitor(node.fromClause)
         self._select_tables = table_visitor.sources
         self._select_columns = table_visitor.columns
-
-
-class CopyFromVisitor(DmlVisitor):
-    def __init__(self, name: str, expr_visitor_clazz: Type[ExprVisitor] = ExprVisitor):
-        super(CopyFromVisitor, self).__init__(name, expr_visitor_clazz)
-
-    def visit_copy_stmt(self, node):
-        if node.is_from:
-            super(CopyFromVisitor, self).visit_copy_stmt(node)
+        return Skip

@@ -25,7 +25,7 @@ def test_no_insert_column_graph(save_catalog, graph_sdk):
         query, name="LOAD page_lookup_nonredirect-test_no_insert_column_graph"
     )
     visitor = SelectSourceVisitor(parsed.name)
-    parsed.node.accept(visitor)
+    visitor(parsed.node)
     source = catalog.get_source("test")
     visitor.bind(catalog, source)
 
@@ -99,7 +99,7 @@ def test_basic_column_graph(save_catalog, graph_sdk):
     query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse(query, "basic_column_graph")
     visitor = SelectSourceVisitor(parsed.name)
-    parsed.node.accept(visitor)
+    visitor(parsed.node)
     source = catalog.get_source("test")
     visitor.bind(catalog, source)
 
