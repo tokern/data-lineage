@@ -5,11 +5,10 @@ from json import JSONEncoder
 from typing import List, Mapping, Set
 
 from dbcat.catalog import Catalog, CatColumn, CatSource, CatTable
+from pglast import Node
 
 from data_lineage import ColumnNotFound, TableNotFound
-from data_lineage.parser.node import AcceptingNode
-from data_lineage.parser.table_visitor import ColumnRefVisitor, RangeVarVisitor
-from data_lineage.parser.visitor import ExprVisitor
+from data_lineage.parser.visitor import ColumnRefVisitor, ExprVisitor, RangeVarVisitor
 
 
 class ColumnContext:
@@ -89,7 +88,7 @@ class CatTableEncoder(JSONEncoder):
 class Binder(ABC):
     @property
     @abstractmethod
-    def _visited_tables(self) -> List[AcceptingNode]:
+    def _visited_tables(self) -> List[Node]:
         pass
 
     @property
@@ -129,7 +128,7 @@ class Binder(ABC):
         bound_tables = []
         for table in self._visited_tables:
             visitor = RangeVarVisitor()
-            visitor.visit(table)
+            visitor(table)
 
             logging.debug("Searching for: {}".format(visitor.search_string))
 
@@ -151,7 +150,7 @@ class Binder(ABC):
                 logging.debug("Bound source table: {}".format(candidate_table))
 
                 self._alias_map[visitor.alias] = AliasContext(
-                    catalog=self._catalog, alias=visitor.alias, tables=[candidate_table]
+                    catalog=self._catalog, alias=visitor.alias, tables={candidate_table}
                 )
                 bound_tables.append(candidate_table)
         return bound_tables
@@ -163,7 +162,7 @@ class Binder(ABC):
             is_a_star = False
             for column in expr_visitor.columns:
                 column_ref_visitor = ColumnRefVisitor()
-                column_ref_visitor.visit(column)
+                column_ref_visitor(column)
                 is_a_star = column_ref_visitor.is_a_star
                 alias_list = list(self._alias_map.values())
                 if column_ref_visitor.is_qualified:
@@ -244,17 +243,17 @@ class SelectBinder(Binder):
         self,
         catalog: Catalog,
         source: CatSource,
-        tables: List[AcceptingNode],
+        tables: List[Node],
         columns: List[ExprVisitor],
         alias_generator,
         alias_map: Mapping[str, AliasContext] = None,
     ):
         super(SelectBinder, self).__init__(catalog, source, alias_generator, alias_map)
-        self._table_nodes: List[AcceptingNode] = tables
+        self._table_nodes: List[Node] = tables
         self._column_nodes: List[ExprVisitor] = columns
 
     @property
-    def _visited_tables(self) -> List[AcceptingNode]:
+    def _visited_tables(self) -> List[Node]:
         return self._table_nodes
 
     @property

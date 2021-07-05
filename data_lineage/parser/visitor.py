@@ -1,69 +1,33 @@
-import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple, Type
 
-import inflection
-
-from data_lineage.parser.node import (
-    AcceptingList,
-    AcceptingNode,
-    AcceptingScalar,
-    Missing,
-)
-
-
-class Visitor:
-    def visit(self, obj):
-        if obj is None:
-            return None
-        if isinstance(obj, AcceptingNode):
-            self.visit_node(obj)
-        elif isinstance(obj, AcceptingList):
-            self.visit_list(obj)
-        elif isinstance(obj, AcceptingScalar):
-            self.visit_scalar(obj)
-
-    def visit_list(self, obj):
-        for item in obj:
-            item.accept(self)
-
-    def visit_node(self, node):
-        method_name = "visit_{}".format(inflection.underscore(node.node_tag))
-        logging.debug("Method name: {}".format(method_name))
-        try:
-            method = getattr(self, method_name)
-            if callable(method):
-                method(node)
-        except AttributeError:
-            logging.debug("{} not found in class {}".format(method_name, node.node_tag))
-
-    def visit_scalar(self, obj):
-        pass
+from pglast import Node
+from pglast.visitors import Skip, Visitor
 
 
 class ExprVisitor(Visitor):
     def __init__(self, alias: str = None):
         self._alias: Optional[str] = alias
-        self._columns: List[AcceptingNode] = []
+        self._columns: List[Node] = []
 
     @property
     def alias(self) -> Optional[str]:
         return self._alias
 
     @property
-    def columns(self) -> List[AcceptingNode]:
+    def columns(self) -> List[Node]:
         return self._columns
 
-    def visit_func_call(self, node):
-        self.visit(node.args)
+    def visit_FuncCall(self, ancestors, node):
+        super().__call__(node.args)
 
-    def visit_type_cast(self, node):
-        self.visit(node.arg)
+    def visit_TypeCast(self, ancestors, node):
+        super().__call__(node.arg)
 
-    def visit_a_expr(self, node):
-        self.visit(node.lexpr)
-        self.visit(node.rexpr)
+    def visit_A_Expr(self, ancestors, node):
+        super().__call__(node.lexpr)
+        super().__call__(node.rexpr)
 
-    def visit_column_ref(self, node):
+    def visit_ColumnRef(self, ancestors, node):
         self._columns.append(node)
 
 
@@ -76,84 +40,120 @@ class RedshiftExprVisitor(ExprVisitor):
         def name(self):
             return self._name
 
-        def visit_string(self, obj):
-            self._name = obj.str.value
+        def visit_String(self, ancestors, obj):
+            self._name = obj.val
 
-    def visit_func_call(self, node):
+    def visit_FuncCall(self, ancestors, node):
         name_visitor = RedshiftExprVisitor.FuncNameVisitor()
-        name_visitor.visit(node.funcname)
+        name_visitor(node.funcname)
         if name_visitor.name == "dateadd":
-            self.visit(node.args[2])
-            return
-
-        self.visit(node.args)
+            super().__call__(node.args[2])
+            return Skip
 
 
-class QueryVisitor(Visitor):
-    def visit_copy_stmt(self, node):
-        self.visit(node.relation)
+class TableVisitor(Visitor):
+    def __init__(self, expr_visitor_clazz: Type[ExprVisitor]):
+        self._sources: List[Node] = []
+        self._columns: List[ExprVisitor] = []
+        self._expr_visitor_clazz = expr_visitor_clazz
 
-    def visit_insert_stmt(self, node):
-        self.visit(node.withClause)
+    @property
+    def sources(self) -> List[Node]:
+        return self._sources
 
-        self.visit(node.relation)
-        self.visit(node.cols)
-        self.visit(node.selectStmt)
-        self.visit(node.onConflictClause)
-        self.visit(node.returningList)
+    @property
+    def columns(self) -> List[ExprVisitor]:
+        return self._columns
 
-    def visit_with_clause(self, node):
-        self.visit(node.ctes)
+    def visit_ResTarget(self, ancestors, node):
+        name = None
+        if node.name is not None:
+            name = node.name
 
-    def visit_common_table_expr(self, node):
-        self.visit(node.ctename)
-        self.visit(node.ctequery)
+        expr_visitor = self._expr_visitor_clazz(name)
+        expr_visitor(node.val)
+        self._columns.append(expr_visitor)
+        return Skip
 
-    def visit_join_expr(self, node):
-        self.visit(node.larg)
-        self.visit(node.rarg)
+    def visit_RangeVar(self, ancestors, node):
+        self._sources.append(node)
+        return Skip
 
-    def visit_raw_stmt(self, node):
-        self.visit(node.stmt)
 
-    def visit_select_stmt(self, node):
-        self.visit(node.withClause)
-        self.visit(node.intoClause)
+class ColumnRefVisitor(Visitor):
+    def __init__(self):
+        self._name: List[str] = []
+        self._is_a_star: bool = False
 
-        if node.valuesLists:
-            self.visit(node.valuesLists)
-        elif node.targetList is Missing:
-            self.visit(node.larg)
-            self.visit(node.op)
-            self.visit(node.rarg)
+    @property
+    def name(self) -> Tuple:
+        return tuple(self._name)
+
+    @property
+    def is_a_star(self) -> bool:
+        return self._is_a_star
+
+    @property
+    def is_qualified(self) -> bool:
+        return len(self._name) == 2 or (len(self._name) == 1 and self._is_a_star)
+
+    @property
+    def column_name(self) -> Optional[str]:
+        if len(self._name) == 2:
+            return self._name[1]
+        elif len(self._name) == 1:
+            return self._name[0]
+        return None
+
+    @property
+    def table_name(self) -> Optional[str]:
+        if len(self._name) == 2 or (self._is_a_star and len(self._name) == 1):
+            return self._name[0]
+
+        return None
+
+    def visit_String(self, ancestors, node):
+        self._name.append(node.val)
+
+    def visit_A_Star(self, ancestors, node):
+        self._is_a_star = True
+
+
+class RangeVarVisitor(Visitor):
+    def __init__(self):
+        self._schema_name = None
+        self._name = None
+        self._alias = None
+
+    @property
+    def alias(self):
+        if self._alias is not None:
+            return self._alias
+        elif self._schema_name is not None:
+            return "{}.{}".format(self._schema_name, self._name)
         else:
-            self.visit(node.distinctClause)
-            self.visit(node.targetList)
-            self.visit(node.fromClause)
-            self.visit(node.whereClause)
-            self.visit(node.groupClause)
-            self.visit(node.havingClause)
-            self.visit(node.windowClause)
-            self.visit(node.sortClause)
-            self.visit(node.limitCount)
-            self.visit(node.limitOffset)
-            self.visit(node.lockingClause)
+            return self._name
 
-    def visit_into_clause(self, node):
-        self.visit(node.colNames)
-        self.visit(node.rel)
-        self.visit(node.tableSpaceName)
+    @property
+    def fqdn(self):
+        return self._schema_name, self._name
 
-    def visit_create_table_as_stmt(self, node):
-        self.visit(node.into)
-        self.visit(node.query)
+    @property
+    def search_string(self):
+        return {"schema_like": self._schema_name, "table_like": self._name}
 
-    def visit_range_subselect(self, node):
-        self.visit(node.subquery)
-        self.visit(node.alias)
+    @property
+    def is_qualified(self) -> bool:
+        return self._schema_name is not None
 
-    def visit_res_target(self, node):
-        self.visit(node.val)
+    @property
+    def name(self) -> str:
+        return self._name
 
-    def visit_column_ref(self, node):
-        self.visit(node.fields)
+    def visit_Alias(self, ancestors, node):
+        self._alias = node.aliasname
+
+    def visit_RangeVar(self, ancestors, node):
+        if node.schemaname:
+            self._schema_name = node.schemaname
+        self._name = node.relname
