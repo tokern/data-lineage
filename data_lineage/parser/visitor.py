@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pglast import Node
 from pglast.visitors import Skip, Visitor
@@ -56,6 +56,7 @@ class TableVisitor(Visitor):
         self._sources: List[Node] = []
         self._columns: List[ExprVisitor] = []
         self._expr_visitor_clazz = expr_visitor_clazz
+        self._with_aliases: Dict[str, Dict[str, Any]] = {}
 
     @property
     def sources(self) -> List[Node]:
@@ -64,6 +65,10 @@ class TableVisitor(Visitor):
     @property
     def columns(self) -> List[ExprVisitor]:
         return self._columns
+
+    @property
+    def with_aliases(self) -> Dict[str, Dict[str, Any]]:
+        return self._with_aliases
 
     def visit_ResTarget(self, ancestors, node):
         name = None
@@ -77,6 +82,21 @@ class TableVisitor(Visitor):
 
     def visit_RangeVar(self, ancestors, node):
         self._sources.append(node)
+        return Skip
+
+    def visit_RangeSubselect(self, ancestors, node):
+        self._sources.append(node)
+        return Skip
+
+    def visit_CommonTableExpr(self, ancestors, node):
+        with_alias = node.ctename
+        table_visitor = TableVisitor(self._expr_visitor_clazz)
+        table_visitor(node.ctequery)
+
+        self._with_aliases[with_alias] = {
+            "tables": table_visitor.sources,
+            "columns": table_visitor.columns,
+        }
         return Skip
 
 
@@ -126,13 +146,14 @@ class RangeVarVisitor(Visitor):
         self._alias = None
 
     @property
-    def alias(self):
+    def alias(self) -> Optional[str]:
         if self._alias is not None:
             return self._alias
-        elif self._schema_name is not None:
+        elif self._schema_name is not None and self._name is not None:
             return "{}.{}".format(self._schema_name, self._name)
-        else:
+        elif self._name is not None:
             return self._name
+        return None
 
     @property
     def fqdn(self):
@@ -147,13 +168,45 @@ class RangeVarVisitor(Visitor):
         return self._schema_name is not None
 
     @property
+    def schema_name(self) -> Optional[str]:
+        return self._schema_name
+
+    @property
     def name(self) -> str:
         return self._name
 
     def visit_Alias(self, ancestors, node):
-        self._alias = node.aliasname
+        self._alias = node.aliasname.lower()
 
     def visit_RangeVar(self, ancestors, node):
         if node.schemaname:
-            self._schema_name = node.schemaname
-        self._name = node.relname
+            self._schema_name = node.schemaname.lower()
+        self._name = node.relname.lower()
+
+
+class RangeSubselectVisitor(Visitor):
+    def __init__(self, expr_visitor_clazz: Type[ExprVisitor]):
+        self._alias: Optional[str] = None
+        self._table_visitor: TableVisitor = TableVisitor(expr_visitor_clazz)
+
+    @property
+    def alias(self) -> Optional[str]:
+        if self._alias is not None:
+            return self._alias
+        return None
+
+    @property
+    def sources(self) -> List[Node]:
+        return self._table_visitor.sources
+
+    @property
+    def columns(self) -> List[ExprVisitor]:
+        return self._table_visitor.columns
+
+    def visit_Alias(self, ancestors, node):
+        self._alias = node.aliasname
+
+    def visit_RangeSubselect(self, ancestors, node):
+        super().__call__(node.alias)
+        self._table_visitor(node.subquery)
+        return Skip

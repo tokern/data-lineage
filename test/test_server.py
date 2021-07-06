@@ -34,7 +34,7 @@ def test_get_tables(rest_catalog):
         assert table.id is not None
         assert table.name is not None
         num += 1
-    assert num == 8
+    assert num == 9
 
 
 def test_get_columns(rest_catalog):
@@ -46,7 +46,7 @@ def test_get_columns(rest_catalog):
         assert column.sort_order is not None
         num += 1
 
-    assert num == 33
+    assert num == 34
 
 
 def test_get_source_by_id(rest_catalog):

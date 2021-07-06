@@ -49,8 +49,6 @@ def main(
     is_production,
 ):
     logging.basicConfig(level=getattr(logging, log_level.upper()))
-    sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
-    sqlalchemy_logger.setLevel(getattr(logging, log_level.upper()))
     catalog = {
         "user": catalog_user,
         "password": catalog_password,
