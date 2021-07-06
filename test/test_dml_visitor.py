@@ -1,7 +1,11 @@
 import pytest
 
 from data_lineage.parser import analyze_dml_query, parse, parse_dml_query, parse_queries
-from data_lineage.parser.dml_visitor import SelectIntoVisitor, SelectSourceVisitor
+from data_lineage.parser.dml_visitor import (
+    CTASVisitor,
+    SelectIntoVisitor,
+    SelectSourceVisitor,
+)
 
 
 @pytest.mark.parametrize(
@@ -58,7 +62,7 @@ def test_sanity_insert(target, sources, sql):
 )
 def test_sanity_ctas(target, sources, sql):
     parsed = parse(sql)
-    visitor = SelectSourceVisitor("test_sanity_ctas")
+    visitor = CTASVisitor("test_sanity_ctas")
     visitor(parsed.node)
     bound_target, bound_tables, bound_cols = visitor.resolve()
 
@@ -106,6 +110,30 @@ def test_sanity_select_into(target, sources, sql):
         'INSERT INTO "default".page_lookup SELECT * FROM page_lookup_redirect',
         "SELECT * INTO page_lookup from page_lookup_redirect",
         'SELECT * INTO "default".page_lookup from page_lookup_redirect',
+        """
+            INSERT INTO page_lookup
+            SELECT * FROM (
+                    select redirect_id, redirect_title, true_title, page_id, page_version FROM page_lookup_redirect
+                    ) plr
+        """,
+        """
+            INSERT INTO page_lookup
+            SELECT plr.* FROM (
+                    select redirect_id, redirect_title, true_title, page_id, page_version FROM page_lookup_redirect
+                    ) plr
+        """,
+        """
+            INSERT INTO page_lookup
+            SELECT redirect_id, redirect_title, true_title, page_id, page_version FROM (
+                    select redirect_id, redirect_title, true_title, page_id, page_version FROM page_lookup_redirect
+                    ) plr
+        """,
+        """
+            INSERT INTO page_lookup
+            SELECT plr.redirect_id, plr.redirect_title, plr.true_title, plr.page_id, plr.page_version FROM (
+                    select redirect_id, redirect_title, true_title, page_id, page_version FROM page_lookup_redirect
+                    ) plr
+        """,
     ],
 )
 def test_insert(save_catalog, query):
@@ -160,6 +188,7 @@ def test_insert_with_join(save_catalog):
         "with pln as (select * from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select redirect_title, true_title, page_id, page_version from pln;",
         "with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select * from pln;",
         "with pln as (select redirect_title as t1, true_title as t2, page_id as t3, page_version as t4 from page_lookup_nonredirect) insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) select t1, t2, t3, t4 from pln;",
+        "insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) select redirect_title, true_title, page_id, page_version from pln;",
     ],
 )
 def test_with_clause(save_catalog, query):
@@ -227,4 +256,24 @@ def test_parse_query(save_catalog):
         "max_date",
         "page_title",
         "mb_sent",
+    ]
+
+
+def test_ctas(save_catalog):
+    query = """
+        CREATE TEMP TABLE temp_table_x(page_title) AS select redirect_title from page_lookup_nonredirect
+        where redirect_title is not null
+    """
+    source = save_catalog.get_source("test")
+    schema = save_catalog.get_schema("test", "default")
+    save_catalog.update_source(source, schema)
+    parsed = parse(query)
+    visitor = analyze_dml_query(save_catalog, parsed, source)
+    assert visitor is not None
+
+    assert len(visitor.target_columns) == 1
+    assert visitor.target_table.fqdn == ("test", "default", "temp_table_x")
+    assert len(visitor.source_columns) == 1
+    assert [table.fqdn for table in visitor.source_tables] == [
+        ("test", "default", "page_lookup_nonredirect")
     ]

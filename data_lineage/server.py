@@ -12,6 +12,7 @@ from dbcat.catalog.models import (
     CatSource,
     CatTable,
     ColumnLineage,
+    DefaultSchema,
     Job,
     JobExecution,
     JobExecutionStatus,
@@ -280,7 +281,16 @@ def create_server(
     catalog_options: Dict[str, str], options: Dict[str, str], is_production=True
 ) -> Tuple[Any, Catalog]:
     logging.debug(catalog_options)
-    catalog = Catalog(**catalog_options)
+    catalog = Catalog(
+        **catalog_options,
+        connect_args={"application_name": "data-lineage:flask-restless"},
+        max_overflow=40,
+        pool_size=20
+    )
+
+    restful_catalog = Catalog(
+        **catalog_options, connect_args={"application_name": "data-lineage:restful"}
+    )
 
     app = Flask(__name__)
 
@@ -327,21 +337,29 @@ def create_server(
         collection_name="column_lineage",
     )
 
+    api_manager.create_api(
+        DefaultSchema,
+        methods=methods,
+        url_prefix=url_prefix,
+        collection_name="default_schema",
+        primary_key="source_id",
+    )
+
     restful_manager = Api(app)
     restful_manager.add_resource(
-        Kedro, "/api/main", resource_class_kwargs={"catalog": catalog}
+        Kedro, "/api/main", resource_class_kwargs={"catalog": restful_catalog}
     )
     restful_manager.add_resource(
         Scanner,
         "{}/scanner".format(url_prefix),
-        resource_class_kwargs={"catalog": catalog},
+        resource_class_kwargs={"catalog": restful_catalog},
     )
     restful_manager.add_resource(
-        Analyze, "/api/v1/analyze", resource_class_kwargs={"catalog": catalog}
+        Analyze, "/api/v1/analyze", resource_class_kwargs={"catalog": restful_catalog}
     )
 
     restful_manager.add_resource(
-        Parse, "/api/v1/parse", resource_class_kwargs={"catalog": catalog}
+        Parse, "/api/v1/parse", resource_class_kwargs={"catalog": restful_catalog}
     )
 
     for rule in app.url_map.iter_rules():

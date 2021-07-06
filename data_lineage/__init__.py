@@ -115,6 +115,11 @@ class ColumnLineage(BaseModel):
         super().__init__(session, attributes, obj_id, relationships)
 
 
+class DefaultSchema(BaseModel):
+    def __init__(self, session, attributes, obj_id, relationships):
+        super().__init__(session, attributes, obj_id, relationships)
+
+
 class Catalog:
     def __init__(self, url: str):
         self._base_url = furl(url) / "api/v1/catalog"
@@ -470,6 +475,16 @@ class Catalog:
         }
         payload = self._post(path="column_lineage", data=data, type="column_lineage")
         return ColumnLineage(
+            session=self._session,
+            attributes=payload["attributes"],
+            obj_id=payload["id"],
+            relationships=None,
+        )
+
+    def update_source(self, source: Source, schema: Schema):
+        data = {"source_id": source.id, "schema_id": schema.id}
+        payload = self._post(path="default_schema", data=data, type="default_schema")
+        return DefaultSchema(
             session=self._session,
             attributes=payload["attributes"],
             obj_id=payload["id"],

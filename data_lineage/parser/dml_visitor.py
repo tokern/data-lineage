@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type
 
 from dbcat.catalog import Catalog, CatColumn, CatSource, CatTable
 from pglast import Node
-from pglast.visitors import Skip, Visitor
+from pglast.ast import IntoClause
+from pglast.visitors import Ancestor, Continue, Skip, Visitor
 
 from data_lineage import ColumnNotFound, SemanticError, TableNotFound
 from data_lineage.parser.binder import (
@@ -88,6 +89,18 @@ class DmlVisitor(Visitor):
         }
         return Skip
 
+    def visit_CreateTableAsStmt(self, ancestors, node):
+        """
+            Do not process CTAS statement by default.
+        :param ancestors:
+        :type ancestors:
+        :param node:
+        :type node:
+        :return:
+        :rtype:
+        """
+        return Skip
+
     def bind(self, catalog: Catalog, source: CatSource):
         self._bind_target(catalog, source)
 
@@ -98,6 +111,7 @@ class DmlVisitor(Visitor):
             self._select_tables,
             self._select_columns,
             self._column_alias_generator,
+            self.expr_visitor_clazz,
             self._alias_map,
         )
         binder.bind()
@@ -161,7 +175,12 @@ class DmlVisitor(Visitor):
                             break
 
                     if not found:
-                        raise ColumnNotFound("{} column is not found".format(column))
+                        raise ColumnNotFound(
+                            '"{}" not found in the following tables: {}'.format(
+                                column,
+                                json.dumps([self._target_table], cls=CatTableEncoder),
+                            )
+                        )
 
             self._target_columns = bound_cols
             logging.debug("Bound {} target columns".format(len(bound_cols)))
@@ -176,6 +195,7 @@ class DmlVisitor(Visitor):
                     self._with_aliases[key]["tables"],
                     self._with_aliases[key]["columns"],
                     self._column_alias_generator,
+                    self.expr_visitor_clazz,
                 )
                 binder.bind()
                 self._alias_map[key] = WithContext(
@@ -220,6 +240,9 @@ class SelectSourceVisitor(DmlVisitor):
         table_visitor(node)
         self._select_tables = table_visitor.sources
         self._select_columns = table_visitor.columns
+        for key in table_visitor.with_aliases.keys():
+            self._with_aliases[key] = table_visitor.with_aliases[key]
+
         return Skip
 
 
@@ -234,4 +257,56 @@ class SelectIntoVisitor(DmlVisitor):
         table_visitor(node.fromClause)
         self._select_tables = table_visitor.sources
         self._select_columns = table_visitor.columns
+        for key in table_visitor.with_aliases.keys():
+            self._with_aliases[key] = table_visitor.with_aliases[key]
+
         return Skip
+
+
+class CTASVisitor(SelectSourceVisitor):
+    def __init__(self, name: str, expr_visitor_clazz: Type[ExprVisitor] = ExprVisitor):
+        super(CTASVisitor, self).__init__(name, expr_visitor_clazz)
+
+    def visit_CreateTableAsStmt(self, ancestors, node):
+        return Continue
+
+    def visit_String(self, ancestors: Ancestor, node):
+        # Check if parent is IntoClause
+        parent = ancestors
+        in_into_clause = False
+        while parent is not None and not in_into_clause:
+            in_into_clause = isinstance(parent.node, IntoClause)
+            parent = parent.parent
+
+        if in_into_clause:
+            self._insert_columns.append(node.val)
+
+    def _bind_target(self, catalog: Catalog, source: CatSource):
+        target_table_visitor = RangeVarVisitor()
+        target_table_visitor(self._insert_table)
+
+        if target_table_visitor.is_qualified:
+            schema = catalog.get_schema(
+                source_name=source.name, schema_name=target_table_visitor.schema_name
+            )
+        elif source.default_schema is not None:
+            schema = source.default_schema.schema
+        else:
+            raise SemanticError(
+                "No default schema set for source {}".format(source.fqdn)
+            )
+
+        self._target_table = catalog.add_table(
+            table_name=target_table_visitor.name, schema=schema
+        )
+
+        sort_order = 1
+        for col in self._insert_columns:
+            self._target_columns.append(
+                catalog.add_column(
+                    column_name=col,
+                    data_type="varchar",
+                    sort_order=sort_order,
+                    table=self._target_table,
+                )
+            )

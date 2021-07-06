@@ -9,6 +9,7 @@ from pglast.parser import ParseError
 from data_lineage import SemanticError
 from data_lineage.parser.binder import SelectBinder
 from data_lineage.parser.dml_visitor import (
+    CTASVisitor,
     DmlVisitor,
     SelectIntoVisitor,
     SelectSourceVisitor,
@@ -61,11 +62,12 @@ def parse_dml_query(
     chosen_visitor = visit_dml_query(parsed, source)
 
     select_binder = SelectBinder(
-        catalog,
-        source,
-        chosen_visitor.select_tables,
-        chosen_visitor.select_columns,
-        ("_U{}".format(i) for i in range(0, 1000)),
+        catalog=catalog,
+        source=source,
+        tables=chosen_visitor.select_tables,
+        columns=chosen_visitor.select_columns,
+        expr_visitor_clazz=chosen_visitor.expr_visitor_clazz,
+        alias_generator=("_U{}".format(i) for i in range(0, 1000)),
     )
     select_binder.bind()
     return select_binder
@@ -81,8 +83,9 @@ def visit_dml_query(parsed: Parsed, source: CatSource,) -> DmlVisitor:
         parsed.name, expr_visitor_clazz
     )
     select_into_visitor: DmlVisitor = SelectIntoVisitor(parsed.name, expr_visitor_clazz)
+    ctas_visitor: DmlVisitor = CTASVisitor(parsed.name, expr_visitor_clazz)
 
-    for v in [select_source_visitor, select_into_visitor]:
+    for v in [select_source_visitor, select_into_visitor, ctas_visitor]:
         v(parsed.node)
         if len(v.select_tables) > 0 and v.insert_table is not None:
             return v
