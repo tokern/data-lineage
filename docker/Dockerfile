@@ -23,7 +23,7 @@ FROM python-base as builder-base
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
         curl gcc python3-dev default-libmysqlclient-dev \
-        build-essential
+        build-essential libpq-dev musl-dev
 
 # Install Poetry - respects $POETRY_VERSION & $POETRY_HOME
 ENV POETRY_VERSION=1.1.6
