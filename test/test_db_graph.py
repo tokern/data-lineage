@@ -12,8 +12,8 @@ from data_lineage.parser.dml_visitor import SelectSourceVisitor
 logging.basicConfig(level=getattr(logging, "DEBUG"))
 
 
-def test_no_insert_column_graph(save_catalog, graph_sdk):
-    catalog = save_catalog
+def test_no_insert_column_graph(managed_session, graph_sdk):
+    catalog = managed_session
     query = """
         INSERT INTO page_lookup_nonredirect
         SELECT page.page_id as redirect_id, page.page_title as redirect_title,
@@ -86,15 +86,15 @@ def test_no_insert_column_graph(save_catalog, graph_sdk):
             ("test", "default", "page_lookup_nonredirect", "page_version"),
         ),
     ]
-    session = catalog.scoped_session
-    all_edges = session.query(ColumnLineage).all()
-    assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
-        expected_db_edges
-    )
+    with catalog.managed_session as session:
+        all_edges = session.query(ColumnLineage).all()
+        assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
+            expected_db_edges
+        )
 
 
-def test_basic_column_graph(save_catalog, graph_sdk):
-    catalog = save_catalog
+def test_basic_column_graph(managed_session, graph_sdk):
+    catalog = managed_session
 
     query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse(query, "basic_column_graph")
@@ -138,7 +138,6 @@ def test_basic_column_graph(save_catalog, graph_sdk):
     )
 
     assert len(columns) == 2
-    session = catalog.scoped_session
 
     expected_db_edges = [
         (
@@ -151,32 +150,35 @@ def test_basic_column_graph(save_catalog, graph_sdk):
         ),
     ]
 
-    all_edges = (
-        session.query(ColumnLineage)
-        .filter(ColumnLineage.target_id.in_([c.id for c in columns]))
-        .all()
-    )
-    assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
-        expected_db_edges
-    )
+    with catalog.managed_session as session:
+        all_edges = (
+            session.query(ColumnLineage)
+            .filter(ColumnLineage.target_id.in_([c.id for c in columns]))
+            .all()
+        )
+        assert set([(e.source.fqdn, e.target.fqdn) for e in all_edges]) == set(
+            expected_db_edges
+        )
 
 
 @pytest.fixture(scope="module")
 def get_graph(save_catalog, parse_queries_fixture, graph_sdk):
     catalog = save_catalog
-    source = catalog.get_source("test")
     job_ids = []
-    for parsed in parse_queries_fixture:
-        visitor = analyze_dml_query(catalog, parsed, source)
-        job_execution = extract_lineage(
-            catalog,
-            visitor,
-            source,
-            parsed,
-            datetime.datetime.now(),
-            datetime.datetime.now(),
-        )
-        job_ids.append(job_execution.job_id)
+
+    with catalog.managed_session:
+        source = catalog.get_source("test")
+        for parsed in parse_queries_fixture:
+            visitor = analyze_dml_query(catalog, parsed, source)
+            job_execution = extract_lineage(
+                catalog,
+                visitor,
+                source,
+                parsed,
+                datetime.datetime.now(),
+                datetime.datetime.now(),
+            )
+            job_ids.append(job_execution.job_id)
     graph = load_graph(graph_sdk, job_ids)
     yield graph, catalog
 

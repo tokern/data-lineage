@@ -136,10 +136,10 @@ def test_sanity_select_into(target, sources, sql):
         """,
     ],
 )
-def test_insert(save_catalog, query):
-    source = save_catalog.get_source("test")
+def test_insert(managed_session, query):
+    source = managed_session.get_source("test")
     parsed = parse(query)
-    visitor = analyze_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(managed_session, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 5
@@ -150,11 +150,11 @@ def test_insert(save_catalog, query):
     ]
 
 
-def test_insert_cols(save_catalog):
-    source = save_catalog.get_source("test")
+def test_insert_cols(managed_session):
+    source = managed_session.get_source("test")
     query = "INSERT INTO page_lookup_nonredirect(page_id, page_version) SELECT page.page_id, page.page_latest FROM page"
     parsed = parse(query)
-    visitor = analyze_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(managed_session, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 2
@@ -165,11 +165,11 @@ def test_insert_cols(save_catalog):
     ]
 
 
-def test_insert_with_join(save_catalog):
-    source = save_catalog.get_source("test")
+def test_insert_with_join(managed_session):
+    source = managed_session.get_source("test")
     query = "insert into page_lookup_redirect select original_page.page_id redirect_id, original_page.page_title redirect_title, final_page.page_title as true_title, final_page.page_id, final_page.page_latest from page final_page join redirect on (redirect.page_title = final_page.page_title) join page original_page on (redirect.rd_from = original_page.page_id)"
     parsed = parse(query)
-    visitor = analyze_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(managed_session, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 5
@@ -191,10 +191,10 @@ def test_insert_with_join(save_catalog):
         "insert into page_lookup_redirect (redirect_title, true_title, page_id, page_version) with pln as (select redirect_title, true_title, page_id, page_version from page_lookup_nonredirect) select redirect_title, true_title, page_id, page_version from pln;",
     ],
 )
-def test_with_clause(save_catalog, query):
-    source = save_catalog.get_source("test")
+def test_with_clause(managed_session, query):
+    source = managed_session.get_source("test")
     parsed = parse(query)
-    visitor = analyze_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(managed_session, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 4
@@ -205,16 +205,16 @@ def test_with_clause(save_catalog, query):
     ]
 
 
-def test_col_exprs(save_catalog):
+def test_col_exprs(managed_session):
     query = """
         INSERT INTO page_lookup_redirect(true_title)
         SELECT
             BTRIM(TO_CHAR(DATEADD (MONTH,-1,('20' ||MAX ("redirect_id") || '-01')::DATE)::DATE,'YY-MM')) AS "max_month"
         FROM page_lookup_nonredirect;
     """
-    source = save_catalog.get_source("test")
+    source = managed_session.get_source("test")
     parsed = parse(query)
-    visitor = analyze_dml_query(catalog=save_catalog, parsed=parsed, source=source)
+    visitor = analyze_dml_query(catalog=managed_session, parsed=parsed, source=source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 1
@@ -237,7 +237,7 @@ def test_syntax_errors():
     assert len(parsed) == 2
 
 
-def test_parse_query(save_catalog):
+def test_parse_query(managed_session):
     query = """
     SELECT BTRIM(TO_CHAR(DATEADD (MONTH,-1,(\'20\' ||MAX ("group") || \'-01\')::DATE)::DATE,\'YY-MM\')) AS "max_month",
         DATEADD(YEAR,-1,DATEADD (MONTH,-3,LAST_DAY (DATEADD (MONTH,-1,(\'20\' ||MAX ("group") || \'-01\')::DATE)::DATE))::DATE)::DATE AS "min_date",
@@ -247,9 +247,9 @@ def test_parse_query(save_catalog):
     INTO "new_table"
     FROM pagecounts;
     """
-    source = save_catalog.get_source("test")
+    source = managed_session.get_source("test")
     parsed = parse(query)
-    binder = parse_dml_query(catalog=save_catalog, parsed=parsed, source=source)
+    binder = parse_dml_query(catalog=managed_session, parsed=parsed, source=source)
     assert [context.alias for context in binder.columns] == [
         "max_month",
         "min_date",
@@ -259,16 +259,16 @@ def test_parse_query(save_catalog):
     ]
 
 
-def test_ctas(save_catalog):
+def test_ctas(managed_session):
     query = """
         CREATE TEMP TABLE temp_table_x(page_title) AS select redirect_title from page_lookup_nonredirect
         where redirect_title is not null
     """
-    source = save_catalog.get_source("test")
-    schema = save_catalog.get_schema("test", "default")
-    save_catalog.update_source(source, schema)
+    source = managed_session.get_source("test")
+    schema = managed_session.get_schema("test", "default")
+    managed_session.update_source(source, schema)
     parsed = parse(query)
-    visitor = analyze_dml_query(save_catalog, parsed, source)
+    visitor = analyze_dml_query(managed_session, parsed, source)
     assert visitor is not None
 
     assert len(visitor.target_columns) == 1
