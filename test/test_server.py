@@ -265,54 +265,58 @@ def load_page_lookup_nonredirect_edges(save_catalog):
         ),
     ]
 
-    job = catalog.add_job(
-        "insert_page_lookup_nonredirect",
-        catalog.get_source("test"),
-        {"sql": "insert into page_lookup_nonredirect select from page"},
-    )
-    e1 = catalog.add_job_execution(
-        job=job,
-        started_at=datetime.datetime.combine(
-            datetime.date(2021, 4, 1), datetime.time(1, 0)
-        ),
-        ended_at=datetime.datetime.combine(
-            datetime.date(2021, 4, 1), datetime.time(1, 15)
-        ),
-        status=JobExecutionStatus.SUCCESS,
-    )
+    job_id = None
 
-    executions = [e1.id]
-    name = job.name
+    with catalog.managed_session:
+        job = catalog.add_job(
+            "insert_page_lookup_nonredirect",
+            catalog.get_source("test"),
+            {"sql": "insert into page_lookup_nonredirect select from page"},
+        )
+        e1 = catalog.add_job_execution(
+            job=job,
+            started_at=datetime.datetime.combine(
+                datetime.date(2021, 4, 1), datetime.time(1, 0)
+            ),
+            ended_at=datetime.datetime.combine(
+                datetime.date(2021, 4, 1), datetime.time(1, 15)
+            ),
+            status=JobExecutionStatus.SUCCESS,
+        )
 
-    print("Inserted job {}".format(name))
-    print("Inserted executions {}".format(",".join(str(v) for v in executions)))
+        executions = [e1.id]
+        name = job.name
+        job_id = job.id
 
-    column_edge_ids = load_edges(catalog, expected_edges, executions[0])
-    print("Inserted edges {}".format(",".join(str(v) for v in column_edge_ids)))
+        print("Inserted job {}".format(name))
+        print("Inserted executions {}".format(",".join(str(v) for v in executions)))
 
-    yield catalog, job, expected_edges
+        column_edge_ids = load_edges(catalog, expected_edges, executions[0])
+        print("Inserted edges {}".format(",".join(str(v) for v in column_edge_ids)))
 
-    session = catalog.scoped_session
-    session.query(ColumnLineage).filter(ColumnLineage.id.in_(column_edge_ids)).delete(
-        synchronize_session=False
-    )
-    print("DELETED edges {}".format(",".join(str(v) for v in column_edge_ids)))
-    session.commit()
+    yield catalog, job_id, expected_edges
 
-    session.query(JobExecution).filter(JobExecution.id.in_(executions)).delete(
-        synchronize_session=False
-    )
-    print("DELETED executions {}".format(",".join(str(v) for v in executions)))
-    session.commit()
+    with catalog.managed_session as session:
+        session.query(ColumnLineage).filter(
+            ColumnLineage.id.in_(column_edge_ids)
+        ).delete(synchronize_session=False)
+        print("DELETED edges {}".format(",".join(str(v) for v in column_edge_ids)))
+        session.commit()
 
-    session.query(Job).filter(Job.name == name).delete(synchronize_session=False)
-    print("DELETED job {}".format(name))
-    session.commit()
+        session.query(JobExecution).filter(JobExecution.id.in_(executions)).delete(
+            synchronize_session=False
+        )
+        print("DELETED executions {}".format(",".join(str(v) for v in executions)))
+        session.commit()
+
+        session.query(Job).filter(Job.name == name).delete(synchronize_session=False)
+        print("DELETED job {}".format(name))
+        session.commit()
 
 
 def test_api_main(graph_sdk, load_page_lookup_nonredirect_edges):
-    catalog, job, expected_edges = load_page_lookup_nonredirect_edges
-    graph = graph_sdk.get([job.id])
+    catalog, job_id, expected_edges = load_page_lookup_nonredirect_edges
+    graph = graph_sdk.get([job_id])
     assert len(graph["edges"]) == 10
     assert len(graph["nodes"]) == 15
 
@@ -348,7 +352,7 @@ def test_parser(rest_catalog, parser_sdk, graph_sdk, save_catalog):
         "insert into page_lookup select plr.page_id, true_title from page_lookup_redirect",
     ],
 )
-def test_parser_table_not_found(rest_catalog, parser_sdk, save_catalog, query):
+def test_parser_table_not_found(rest_catalog, parser_sdk, managed_session, query):
     source = rest_catalog.get_source("test")
 
     with pytest.raises(TableNotFound) as exc:
@@ -368,7 +372,7 @@ def test_parser_table_not_found(rest_catalog, parser_sdk, save_catalog, query):
         "insert into page_lookup(true_title) select title from page_lookup_redirect",
     ],
 )
-def test_parser_column_not_found(rest_catalog, parser_sdk, save_catalog, query):
+def test_parser_column_not_found(rest_catalog, parser_sdk, managed_session, query):
     source = rest_catalog.get_source("test")
 
     with pytest.raises(ColumnNotFound) as exc:
@@ -384,7 +388,7 @@ def test_parser_column_not_found(rest_catalog, parser_sdk, save_catalog, query):
 @pytest.mark.parametrize(
     "query", ["insert page_lookup select * from page_lookup_redirect"]
 )
-def test_parser_parse_error(rest_catalog, parser_sdk, save_catalog, query):
+def test_parser_parse_error(rest_catalog, parser_sdk, managed_session, query):
     source = rest_catalog.get_source("test")
 
     with pytest.raises(ParseError) as exc:

@@ -3,7 +3,7 @@ from contextlib import closing
 import pytest
 import yaml
 from dbcat import Catalog as DbCatalog
-from dbcat import catalog_connection
+from dbcat import catalog_connection, init_db
 from dbcat.catalog import CatSource
 
 from data_lineage import Analyze, Catalog, Graph
@@ -80,6 +80,7 @@ catalog:
 @pytest.fixture(scope="session")
 def open_catalog_connection(setup_catalog):
     with closing(catalog_connection(catalog_conf)) as conn:
+        init_db(conn)
         yield conn
 
 
@@ -99,24 +100,25 @@ class File:
         with open(self.path, "r") as file:
             content = json.load(file)
 
-        source = self._catalog.add_source(
-            name=content["name"], source_type=content["source_type"]
-        )
-        for s in content["schemata"]:
-            schema = self._catalog.add_schema(s["name"], source=source)
+        with self._catalog.managed_session:
+            source = self._catalog.add_source(
+                name=content["name"], source_type=content["source_type"]
+            )
+            for s in content["schemata"]:
+                schema = self._catalog.add_schema(s["name"], source=source)
 
-            for t in s["tables"]:
-                table = self._catalog.add_table(t["name"], schema)
+                for t in s["tables"]:
+                    table = self._catalog.add_table(t["name"], schema)
 
-                index = 0
-                for c in t["columns"]:
-                    self._catalog.add_column(
-                        column_name=c["name"],
-                        data_type=c["data_type"],
-                        sort_order=index,
-                        table=table,
-                    )
-                    index += 1
+                    index = 0
+                    for c in t["columns"]:
+                        self._catalog.add_column(
+                            column_name=c["name"],
+                            data_type=c["data_type"],
+                            sort_order=index,
+                            table=table,
+                        )
+                        index += 1
 
 
 @pytest.fixture(scope="session")
@@ -124,9 +126,15 @@ def save_catalog(open_catalog_connection):
     scanner = File("test", "test/catalog.json", open_catalog_connection)
     scanner.scan()
     yield open_catalog_connection
-    session = open_catalog_connection.scoped_session
-    [session.delete(db) for db in session.query(CatSource).all()]
-    session.commit()
+    with open_catalog_connection.managed_session as session:
+        [session.delete(db) for db in session.query(CatSource).all()]
+        session.commit()
+
+
+@pytest.fixture(scope="function")
+def managed_session(save_catalog):
+    with save_catalog.managed_session:
+        yield save_catalog
 
 
 @pytest.fixture(scope="session")

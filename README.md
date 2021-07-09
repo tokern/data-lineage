@@ -35,7 +35,7 @@ Download the docker-compose file from Github repository.
     # in a new directory run
     wget https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/catalog-demo.yml
     # or run
-    curl https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/catalog-demo.yml -o docker-compose.yml
+    curl https://raw.githubusercontent.com/tokern/data-lineage/master/install-manifests/docker-compose/tokern-lineage-engine.yml -o docker-compose.yml
 
 
 Run docker-compose

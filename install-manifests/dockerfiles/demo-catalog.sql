@@ -33,6 +33,17 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: catalog_user
+--
+
+CREATE TABLE public.alembic_version (
+    version_num character varying(32) NOT NULL
+);
+
+
+ALTER TABLE public.alembic_version OWNER TO catalog_user;
+
+--
 -- Name: column_lineage; Type: TABLE; Schema: public; Owner: catalog_user
 --
 
@@ -363,6 +374,15 @@ ALTER TABLE ONLY public.tables ALTER COLUMN id SET DEFAULT nextval('public.table
 
 
 --
+-- Data for Name: alembic_version; Type: TABLE DATA; Schema: public; Owner: catalog_user
+--
+
+COPY public.alembic_version (version_num) FROM stdin;
+d1daff1715f7
+\.
+
+
+--
 -- Data for Name: column_lineage; Type: TABLE DATA; Schema: public; Owner: catalog_user
 --
 
@@ -447,11 +467,11 @@ COPY public.default_schema (source_id, schema_id) FROM stdin;
 --
 
 COPY public.job_executions (id, job_id, started_at, ended_at, status) FROM stdin;
-1	1	2021-07-10 22:14:26.228871	2021-07-10 22:14:26.228882	SUCCESS
-2	2	2021-07-10 22:14:26.382194	2021-07-10 22:14:26.382204	SUCCESS
-3	3	2021-07-10 22:14:26.547819	2021-07-10 22:14:26.547829	SUCCESS
-4	4	2021-07-10 22:14:26.666798	2021-07-10 22:14:26.666806	SUCCESS
-5	5	2021-07-10 22:14:26.771796	2021-07-10 22:14:26.771804	SUCCESS
+1	1	2021-07-29 23:11:44.470984	2021-07-29 23:11:44.470993	SUCCESS
+2	2	2021-07-29 23:11:44.61084	2021-07-29 23:11:44.610849	SUCCESS
+3	3	2021-07-29 23:11:44.717093	2021-07-29 23:11:44.717101	SUCCESS
+4	4	2021-07-29 23:11:44.842395	2021-07-29 23:11:44.84241	SUCCESS
+5	5	2021-07-29 23:11:44.949858	2021-07-29 23:11:44.949867	SUCCESS
 \.
 
 
@@ -549,6 +569,14 @@ SELECT pg_catalog.setval('public.sources_id_seq', 1, true);
 --
 
 SELECT pg_catalog.setval('public.tables_id_seq', 8, true);
+
+
+--
+-- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: catalog_user
+--
+
+ALTER TABLE ONLY public.alembic_version
+    ADD CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num);
 
 
 --

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple
 
 import flask_restless
 import gunicorn.app.base
-from dbcat import Catalog
+from dbcat import Catalog, init_db
 from dbcat.catalog import CatColumn
 from dbcat.catalog.db import DbScanner
 from dbcat.catalog.models import (
@@ -66,23 +66,24 @@ class Kedro(Resource):
         edges = []
 
         args = self._parser.parse_args()
-        column_edges = self._catalog.get_column_lineages(args["job_ids"])
-        for edge in column_edges:
-            nodes.append(self._column_info(edge.source))
-            nodes.append(self._column_info(edge.target))
-            nodes.append(self._job_info(edge.job_execution.job))
-            edges.append(
-                {
-                    "source": "column:{}".format(edge.source_id),
-                    "target": "task:{}".format(edge.job_execution.job_id),
-                }
-            )
-            edges.append(
-                {
-                    "source": "task:{}".format(edge.job_execution.job_id),
-                    "target": "column:{}".format(edge.target_id),
-                }
-            )
+        with self._catalog.managed_session:
+            column_edges = self._catalog.get_column_lineages(args["job_ids"])
+            for edge in column_edges:
+                nodes.append(self._column_info(edge.source))
+                nodes.append(self._column_info(edge.target))
+                nodes.append(self._job_info(edge.job_execution.job))
+                edges.append(
+                    {
+                        "source": "column:{}".format(edge.source_id),
+                        "target": "task:{}".format(edge.job_execution.job_id),
+                    }
+                )
+                edges.append(
+                    {
+                        "source": "task:{}".format(edge.job_execution.job_id),
+                        "target": "column:{}".format(edge.target_id),
+                    }
+                )
 
         return {"nodes": nodes, "edges": edges}
 
@@ -106,14 +107,12 @@ class Scanner(Resource):
         self._parser.add_argument("id", required=True, help="ID of the resource")
 
     def post(self):
-        try:
-            args = self._parser.parse_args()
-            logging.debug("Args for scanning: {}".format(args))
+        args = self._parser.parse_args()
+        logging.debug("Args for scanning: {}".format(args))
+        with self._catalog.managed_session:
             source = self._catalog.get_source_by_id(int(args["id"]))
             DbScanner(self._catalog, source).scan()
             return "Scanned {}".format(source.fqdn), 200
-        finally:
-            self._catalog.scoped_session.remove()
 
 
 class Parse(Resource):
@@ -134,27 +133,26 @@ class Parse(Resource):
             raise ParseErrorHTTP(description=str(error))
 
         try:
-            source = self._catalog.get_source_by_id(args["source_id"])
-            logging.debug("Parsing query for source {}".format(source))
-            binder = parse_dml_query(
-                catalog=self._catalog, parsed=parsed, source=source
-            )
+            with self._catalog.managed_session:
+                source = self._catalog.get_source_by_id(args["source_id"])
+                logging.debug("Parsing query for source {}".format(source))
+                binder = parse_dml_query(
+                    catalog=self._catalog, parsed=parsed, source=source
+                )
 
-            return (
-                {
-                    "select_tables": [table.name for table in binder.tables],
-                    "select_columns": [context.alias for context in binder.columns],
-                },
-                200,
-            )
+                return (
+                    {
+                        "select_tables": [table.name for table in binder.tables],
+                        "select_columns": [context.alias for context in binder.columns],
+                    },
+                    200,
+                )
         except TableNotFound as table_error:
             raise TableNotFoundHTTP(description=str(table_error))
         except ColumnNotFound as column_error:
             raise ColumnNotFoundHTTP(description=str(column_error))
         except SemanticError as semantic_error:
             raise SemanticErrorHTTP(description=str(semantic_error))
-        finally:
-            self._catalog.scoped_session.remove()
 
 
 class Analyze(Resource):
@@ -182,45 +180,44 @@ class Analyze(Resource):
             raise ParseErrorHTTP(description=str(error))
 
         try:
-            source = self._catalog.get_source_by_id(args["source_id"])
-            logging.debug("Parsing query for source {}".format(source))
-            chosen_visitor = analyze_dml_query(self._catalog, parsed, source)
-            job_execution = extract_lineage(
-                catalog=self._catalog,
-                visited_query=chosen_visitor,
-                source=source,
-                parsed=parsed,
-                start_time=datetime.datetime.fromisoformat(args["start_time"]),
-                end_time=datetime.datetime.fromisoformat(args["end_time"]),
-            )
+            with self._catalog.managed_session:
+                source = self._catalog.get_source_by_id(args["source_id"])
+                logging.debug("Parsing query for source {}".format(source))
+                chosen_visitor = analyze_dml_query(self._catalog, parsed, source)
+                job_execution = extract_lineage(
+                    catalog=self._catalog,
+                    visited_query=chosen_visitor,
+                    source=source,
+                    parsed=parsed,
+                    start_time=datetime.datetime.fromisoformat(args["start_time"]),
+                    end_time=datetime.datetime.fromisoformat(args["end_time"]),
+                )
 
-            return (
-                {
-                    "data": {
-                        "id": job_execution.id,
-                        "type": "job_executions",
-                        "attributes": {
-                            "job_id": job_execution.job_id,
-                            "started_at": job_execution.started_at.strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "ended_at": job_execution.ended_at.strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "status": job_execution.status.name,
-                        },
-                    }
-                },
-                200,
-            )
+                return (
+                    {
+                        "data": {
+                            "id": job_execution.id,
+                            "type": "job_executions",
+                            "attributes": {
+                                "job_id": job_execution.job_id,
+                                "started_at": job_execution.started_at.strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                ),
+                                "ended_at": job_execution.ended_at.strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                ),
+                                "status": job_execution.status.name,
+                            },
+                        }
+                    },
+                    200,
+                )
         except TableNotFound as table_error:
             raise TableNotFoundHTTP(description=str(table_error))
         except ColumnNotFound as column_error:
             raise ColumnNotFoundHTTP(description=str(column_error))
         except SemanticError as semantic_error:
             raise SemanticErrorHTTP(description=str(semantic_error))
-        finally:
-            self._catalog.scoped_session.remove()
 
 
 class Server(gunicorn.app.base.BaseApplication):
@@ -289,6 +286,8 @@ def create_server(
         pool_pre_ping=True
     )
 
+    init_db(catalog)
+
     restful_catalog = Catalog(
         **catalog_options,
         connect_args={"application_name": "data-lineage:restful"},
@@ -300,7 +299,7 @@ def create_server(
     # Create CRUD APIs
     methods = ["DELETE", "GET", "PATCH", "POST"]
     url_prefix = "/api/v1/catalog"
-    api_manager = flask_restless.APIManager(app, catalog.scoped_session)
+    api_manager = flask_restless.APIManager(app, catalog.get_scoped_session())
     api_manager.create_api(
         CatSource,
         methods=methods,
