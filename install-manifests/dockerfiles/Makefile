@@ -18,7 +18,8 @@ generate_image:
 push_to_registry:
 	@echo ""
 	@echo "====== Pushing image to repository ======"
-	@docker push $(DESTINATION_REPOSITORY)/$(TARGET_IMAGE)
+	@docker push $(DESTINATION_REPOSITORY)/$(TARGET_IMAGE):latest
+	@docker push $(DESTINATION_REPOSITORY)/$(TARGET_IMAGE):$(VERSION)
 
 finished:
 	@echo ""
