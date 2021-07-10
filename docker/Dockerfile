@@ -45,6 +45,10 @@ RUN pip install dist/data_lineage-*.whl
 # in only our runtime deps that were installed in the 'builder-base'
 FROM python-base as production
 
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+        libpq5
+
 COPY --from=builder-base $VENV_PATH $VENV_PATH
 COPY ./docker/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
