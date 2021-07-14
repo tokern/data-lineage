@@ -70,12 +70,26 @@ Run docker-compose
     docker-compose up -d
 
 
-If you want to use an external Postgres database, replace the following parameters in `tokern-lineage-engine.yml`:
+If you want to use an external Postgres database, change the following parameters in `tokern-lineage-engine.yml`:
 
 * CATALOG_HOST
 * CATALOG_USER
 * CATALOG_PASSWORD
 * CATALOG_DB
+
+You can also override default values using environement variables. 
+
+    CATALOG_HOST=... CATALOG_USER=... CATALOG_PASSWORD=... CATALOG_DB=... docker-compose -f ... up -d
+
+For more advanced usage of environment variables with docker-compose, [refer to docker-compose docs](https://docs.docker.com/compose/environment-variables/)
+
+**Pro-tip**
+
+If you want to connect to a database in the host machine, set 
+
+    CATALOG_HOST: host.docker.internal # For mac or windows
+    #OR
+    CATALOG_HOST: 172.17.0.1 # Linux
 
 ## Supported Technologies
 
