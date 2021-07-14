@@ -20,12 +20,12 @@ services:
       - tokern-internal
       - tokern-net
     environment:
-      CATALOG_PASSWORD: catal0g_passw0rd
-      CATALOG_USER: catalog_user
-      CATALOG_DB: tokern
-      CATALOG_HOST: tokern-catalog
+      CATALOG_PASSWORD: ${CATALOG_PASSWORD:-catal0g_passw0rd}
+      CATALOG_USER: ${CATALOG_USER:-catalog_user}
+      CATALOG_DB: ${CATALOG_DB:-tokern}
+      CATALOG_HOST: ${CATALOG_HOST:-tokern-catalog}
       SERVER_ADDRESS: "0.0.0.0:4142"
-  toker-viz:
+  tokern-viz:
     image: tokern/data-lineage-viz:latest
     container_name: tokern-data-lineage-visualizer
     restart: unless-stopped

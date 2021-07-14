@@ -25,7 +25,7 @@ from data_lineage.server import create_server
     "--catalog-port", help="Database Password", envvar="CATALOG_PORT", default=5432
 )
 @click.option(
-    "--catalog-db", help="Postgres Database", envvar="CATALOG_PORT", default="tokern"
+    "--catalog-db", help="Postgres Database", envvar="CATALOG_DB", default="tokern"
 )
 @click.option(
     "--server-address",
