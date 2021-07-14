@@ -285,11 +285,14 @@ def create_server(
         **catalog_options,
         connect_args={"application_name": "data-lineage:flask-restless"},
         max_overflow=40,
-        pool_size=20
+        pool_size=20,
+        pool_pre_ping=True
     )
 
     restful_catalog = Catalog(
-        **catalog_options, connect_args={"application_name": "data-lineage:restful"}
+        **catalog_options,
+        connect_args={"application_name": "data-lineage:restful"},
+        pool_pre_ping=True
     )
 
     app = Flask(__name__)
