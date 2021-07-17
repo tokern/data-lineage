@@ -51,6 +51,7 @@ def test_get_columns(rest_catalog):
 
 def test_get_source_by_id(rest_catalog):
     source = rest_catalog.get_source_by_id(1)
+    print(source.__class__.__name__)
     assert source.name == "test"
     assert source.fqdn == "test"
     assert source.source_type == "redshift"
@@ -195,6 +196,23 @@ def test_add_source_snowflake(rest_catalog):
     assert sf_conn.account == "db_account"
     assert sf_conn.role == "db_role"
     assert sf_conn.warehouse == "db_warehouse"
+
+
+def test_update_source(rest_catalog):
+    glue_conn = rest_catalog.add_source(name="gl_2", source_type="glue")
+    schema_1 = rest_catalog.add_schema("schema_1", glue_conn)
+
+    default_schema = rest_catalog.update_source(glue_conn, schema_1)
+
+    assert default_schema.source.id == glue_conn.id
+    assert default_schema.schema.id == schema_1.id
+
+    schema_2 = rest_catalog.add_schema("schema_2", glue_conn)
+
+    default_schema = rest_catalog.update_source(glue_conn, schema_2)
+
+    assert default_schema.source.id == glue_conn.id
+    assert default_schema.schema.id == schema_2.id
 
 
 def load_edges(catalog, expected_edges, job_execution_id):

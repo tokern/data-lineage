@@ -4,11 +4,12 @@ __version__ = "0.7.7"
 import datetime
 import json
 import logging
-from typing import Any, Dict, Generator, List, Optional, Type
+from typing import Any, Dict, Generator, Generic, List, Optional, Type, TypeVar
 
 import requests
 from dbcat.catalog.models import JobExecutionStatus
 from furl import furl
+from requests import HTTPError
 
 from data_lineage.graph import LineageGraph
 
@@ -73,10 +74,13 @@ class BaseModel:
         self._relationships = relationships
 
     def __getattr__(self, item):
+        logging.debug("Attributes: {}".format(self._attributes))
         if item == "id":
             return self._obj_id
-        elif item in self._attributes.keys():
+        elif self._attributes and item in self._attributes.keys():
             return self._attributes[item]
+        elif self._relationships and item in self._relationships.keys():
+            return self._relationships[item]
         raise AttributeError
 
 
@@ -120,6 +124,9 @@ class DefaultSchema(BaseModel):
         super().__init__(session, attributes, obj_id, relationships)
 
 
+ModelType = TypeVar("ModelType", bound=BaseModel)
+
+
 class Catalog:
     def __init__(self, url: str):
         self._base_url = furl(url) / "api/v1/catalog"
@@ -134,14 +141,39 @@ class Catalog:
         logging.debug(built_url)
         return built_url
 
+    str_to_type = {
+        "sources": Source,
+        "schemata": Schema,
+    }
+
+    def _resolve_relationships(self, relationships) -> Dict[str, BaseModel]:
+        resolved: Dict[str, BaseModel] = {}
+        for key, value in relationships.items():
+            logging.debug("Resolving {}:{}".format(key, value))
+            if value["data"]:
+                resolved[key] = self._obj_factory(
+                    value["data"],
+                    Catalog.str_to_type[value["data"]["type"]],
+                    resolve_relationships=False,
+                )
+
+        return resolved
+
     def _obj_factory(
-        self, payload: Dict[str, Any], clazz: Type[BaseModel]
-    ) -> BaseModel:
+        self,
+        payload: Dict[str, Any],
+        clazz: Type[ModelType],
+        resolve_relationships=False,
+    ) -> ModelType:
+        resolved = None
+        if resolve_relationships and payload.get("relationships"):
+            resolved = self._resolve_relationships(payload.get("relationships"))
+
         return clazz(
             session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
+            attributes=payload.get("attributes"),
+            obj_id=payload.get("id"),
+            relationships=resolved,
         )
 
     def _iterate(self, payload: Dict[str, Any], clazz: Type[BaseModel]):
@@ -161,14 +193,20 @@ class Catalog:
         logging.debug(response.json())
         return self._iterate(response.json(), clazz)
 
-    def _get(self, path: str, obj_id: int) -> Dict[Any, Any]:
+    def _get(
+        self,
+        path: str,
+        obj_id: int,
+        clazz: Type[ModelType],
+        resolve_relationships=False,
+    ) -> ModelType:
         response = self._session.get(self._build_url(path, str(obj_id)))
         json_response = response.json()
         logging.debug(json_response)
-
-        if "error" in json_response:
-            raise RuntimeError(json_response["error"])
-        return json_response["data"]
+        response.raise_for_status()
+        return self._obj_factory(
+            json_response["data"], clazz, resolve_relationships=resolve_relationships
+        )
 
     @staticmethod
     def _one(response):
@@ -204,6 +242,15 @@ class Catalog:
         logging.debug(json_response)
         return json_response["data"]
 
+    def _patch(self, path: str, obj_id: int, data: Dict[str, Any], type: str):
+        payload = {"data": {"type": type, "attributes": data, "id": obj_id}}
+        response = self._session.patch(
+            url=self._build_url(path, str(obj_id)),
+            data=json.dumps(payload, default=str),
+        )
+        response.raise_for_status()
+        return
+
     def get_sources(self) -> Generator[Any, Any, None]:
         return self._index("sources", Source)
 
@@ -226,63 +273,28 @@ class Catalog:
         return self._index("column_lineages", ColumnLineage)
 
     def get_source_by_id(self, obj_id) -> Source:
-        payload = self._get("sources", obj_id)
-        return Source(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._get("sources", obj_id, Source)
 
     def get_schema_by_id(self, obj_id) -> Schema:
-        payload = self._get("schemata", obj_id)
-        return Schema(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._get("schemata", obj_id, Schema)
 
     def get_table_by_id(self, obj_id) -> Table:
-        payload = self._get("tables", obj_id)
-        return Table(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._get("tables", obj_id, Table)
 
     def get_column_by_id(self, obj_id) -> Column:
-        payload = self._get("columns", obj_id)
-        return Column(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._get("columns", obj_id, Column)
 
     def get_job_by_id(self, obj_id) -> Job:
-        payload = self._get("jobs", obj_id)
-        return Job(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=None,
-        )
+        return self._get("jobs", obj_id, Job)
 
     def get_job_execution_by_id(self, obj_id) -> JobExecution:
-        payload = self._get("job_executions", obj_id)
-        return JobExecution(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=None,
-        )
+        return self._get("job_executions", obj_id, JobExecution)
 
     def get_column_lineage(self, job_ids: List[int]) -> List[ColumnLineage]:
         params = {"job_ids": job_ids}
         response = self._session.get(self._build_url("column_lineage"), params=params)
         logging.debug(response.json())
+        response.raise_for_status()
         return [
             ColumnLineage(
                 session=self._session,
@@ -299,12 +311,8 @@ class Catalog:
             payload = self._search_one("sources", filters)
         except NoResultFound:
             raise SourceNotFound("Source not found: source_name={}".format(name))
-        return Source(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+
+        return self._obj_factory(payload, Source)
 
     def get_schema(self, source_name: str, schema_name: str) -> Schema:
         name_filter = dict(name="name", op="eq", val=schema_name)
@@ -321,12 +329,7 @@ class Catalog:
                     source_name, schema_name
                 )
             )
-        return Schema(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Schema)
 
     def get_table(self, source_name: str, schema_name: str, table_name: str) -> Table:
         schema = self.get_schema(source_name, schema_name)
@@ -343,17 +346,12 @@ class Catalog:
                     source_name, schema_name, table_name
                 )
             )
-        return Table(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Table)
 
     def get_columns_for_table(self, table: Table):
         return self._index("tables/{}/columns".format(table.id), Column)
 
-    def get_column(self, source_name, schema_name, table_name, column_name):
+    def get_column(self, source_name, schema_name, table_name, column_name) -> Column:
         table = self.get_table(source_name, schema_name, table_name)
         name_filter = dict(name="name", op="eq", val=column_name)
         table_filter = dict(name="table_id", op="eq", val=str(table.id))
@@ -367,49 +365,30 @@ class Catalog:
                     source_name, schema_name, table_name, column_name
                 )
             )
-        return Column(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Column)
 
     def add_source(self, name: str, source_type: str, **kwargs) -> Source:
         data = {"name": name, "source_type": source_type, **kwargs}
         payload = self._post(path="sources", data=data, type="sources")
-        return Source(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Source)
 
     def scan_source(self, source: Source) -> bool:
         payload = {"id": source.id}
         response = self._session.post(
             url=self._build_url("scanner"), data=json.dumps(payload)
         )
+        response.raise_for_status()
         return response.status_code == 200
 
     def add_schema(self, name: str, source: Source) -> Schema:
         data = {"name": name, "source_id": source.id}
         payload = self._post(path="schemata", data=data, type="schemata")
-        return Schema(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Schema)
 
     def add_table(self, name: str, schema: Schema) -> Table:
         data = {"name": name, "schema_id": schema.id}
         payload = self._post(path="tables", data=data, type="tables")
-        return Table(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Table)
 
     def add_column(
         self, name: str, data_type: str, sort_order: int, table: Table
@@ -421,23 +400,12 @@ class Catalog:
             "sort_order": sort_order,
         }
         payload = self._post(path="columns", data=data, type="columns")
-        return Column(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=payload["relationships"],
-        )
+        return self._obj_factory(payload, Column)
 
     def add_job(self, name: str, context: Dict[Any, Any]) -> Job:
         data = {"name": name, "context": context}
         payload = self._post(path="jobs", data=data, type="jobs")
-        print(payload)
-        return Job(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=None,
-        )
+        return self._obj_factory(payload, Job)
 
     def add_job_execution(
         self,
@@ -453,12 +421,7 @@ class Catalog:
             "status": status.name,
         }
         payload = self._post(path="job_executions", data=data, type="job_executions")
-        return JobExecution(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=None,
-        )
+        return self._obj_factory(payload, JobExecution)
 
     def add_column_lineage(
         self,
@@ -474,21 +437,38 @@ class Catalog:
             "context": context,
         }
         payload = self._post(path="column_lineage", data=data, type="column_lineage")
-        return ColumnLineage(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=None,
-        )
+        return self._obj_factory(payload, ColumnLineage)
 
-    def update_source(self, source: Source, schema: Schema):
-        data = {"source_id": source.id, "schema_id": schema.id}
-        payload = self._post(path="default_schema", data=data, type="default_schema")
-        return DefaultSchema(
-            session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
-            relationships=None,
+    def update_source(self, source: Source, schema: Schema) -> DefaultSchema:
+        try:
+            current_obj = self._get(
+                path="default_schema",
+                obj_id=source.id,
+                clazz=DefaultSchema,
+                resolve_relationships=True,
+            )
+            if current_obj.schema.id == schema.id:
+                return current_obj
+        except HTTPError as error:
+            if error.response.status_code == 404:
+                data = {"source_id": source.id, "schema_id": schema.id}
+                payload = self._post(
+                    path="default_schema", data=data, type="default_schema"
+                )
+                return self._obj_factory(
+                    payload, DefaultSchema, resolve_relationships=True
+                )
+
+        # Patch
+        data = {"schema_id": schema.id}
+        self._patch(
+            path="default_schema", data=data, type="default_schema", obj_id=source.id
+        )
+        return self._get(
+            path="default_schema",
+            obj_id=source.id,
+            clazz=DefaultSchema,
+            resolve_relationships=True,
         )
 
 
@@ -529,8 +509,8 @@ class Analyze:
         payload = response.json()["data"]
         return JobExecution(
             session=self._session,
-            attributes=payload["attributes"],
-            obj_id=payload["id"],
+            attributes=payload.get("attributes"),
+            obj_id=payload.get("id"),
             relationships=None,
         )
 
