@@ -238,8 +238,8 @@ class Catalog:
             url=self._build_url(path), data=json.dumps(payload, default=str)
         )
         response.raise_for_status()
+        logging.debug(response.text)
         json_response = response.json()
-        logging.debug(json_response)
         return json_response["data"]
 
     def _patch(self, path: str, obj_id: int, data: Dict[str, Any], type: str):
@@ -504,7 +504,7 @@ class Analyze:
         elif response.status_code == 443:
             raise SemanticError(response.json()["message"])
 
-        logging.debug(response.json())
+        logging.debug(response.text)
         response.raise_for_status()
         payload = response.json()["data"]
         return JobExecution(
@@ -524,6 +524,6 @@ class Parse:
         response = self._session.post(
             self._base_url, params={"query": query, "source_id": source.id},
         )
-        logging.debug(response.json())
+        logging.debug(response.text)
         response.raise_for_status()
         return response.json()
