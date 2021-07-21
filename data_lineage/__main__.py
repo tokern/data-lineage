@@ -8,7 +8,9 @@ from data_lineage.server import create_server
 
 @click.command()
 @click.version_option(__version__)
-@click.option("-l", "--log-level", help="Logging Level", default="INFO")
+@click.option(
+    "-l", "--log-level", envvar="LOG_LEVEL", help="Logging Level", default="INFO"
+)
 @click.option(
     "--catalog-user", help="Database user name", envvar="CATALOG_USER", required=True
 )
