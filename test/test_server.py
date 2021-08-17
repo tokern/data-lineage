@@ -219,14 +219,14 @@ def load_edges(catalog, expected_edges, job_execution_id):
     column_edge_ids = []
     for edge in expected_edges:
         source = catalog.get_column(
-            database_name=edge[0][0],
+            source_name=edge[0][0],
             schema_name=edge[0][1],
             table_name=edge[0][2],
             column_name=edge[0][3],
         )
 
         target = catalog.get_column(
-            database_name=edge[1][0],
+            source_name=edge[1][0],
             schema_name=edge[1][1],
             table_name=edge[1][2],
             column_name=edge[1][3],
