@@ -2,7 +2,7 @@ from contextlib import closing
 
 import pytest
 import yaml
-from dbcat import Catalog as DbCatalog
+from dbcat import PGCatalog as DbCatalog
 from dbcat import catalog_connection, init_db
 from dbcat.catalog import CatSource
 

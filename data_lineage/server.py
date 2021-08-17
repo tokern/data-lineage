@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple
 
 import flask_restless
 import gunicorn.app.base
-from dbcat import Catalog, init_db
+from dbcat import Catalog, PGCatalog, init_db
 from dbcat.catalog import CatColumn
 from dbcat.catalog.db import DbScanner
 from dbcat.catalog.models import (
@@ -276,9 +276,9 @@ def job_execution_deserializer(data: Dict["str", Any]):
 
 def create_server(
     catalog_options: Dict[str, str], options: Dict[str, str], is_production=True
-) -> Tuple[Any, Catalog]:
+) -> Tuple[Any, PGCatalog]:
     logging.debug(catalog_options)
-    catalog = Catalog(
+    catalog = PGCatalog(
         **catalog_options,
         connect_args={"application_name": "data-lineage:flask-restless"},
         max_overflow=40,
@@ -288,7 +288,7 @@ def create_server(
 
     init_db(catalog)
 
-    restful_catalog = Catalog(
+    restful_catalog = PGCatalog(
         **catalog_options,
         connect_args={"application_name": "data-lineage:restful"},
         pool_pre_ping=True
