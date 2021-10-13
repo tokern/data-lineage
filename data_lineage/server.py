@@ -221,19 +221,22 @@ class Analyze(Resource):
 
 
 class Server(gunicorn.app.base.BaseApplication):
-    def __init__(self, app, options=None):
-        self.options = options or {}
+    def __init__(self, app):
         self.application = app
         super().__init__()
 
     def load_config(self):
-        config = {
-            key: value
-            for key, value in self.options.items()
-            if key in self.cfg.settings and value is not None
-        }
-        for key, value in config.items():
-            self.cfg.set(key.lower(), value)
+        # parse console args
+        parser = self.cfg.parser()
+        env_args = parser.parse_args(self.cfg.get_cmd_args_from_env())
+
+        # Load up environment configuration
+        for k, v in vars(env_args).items():
+            if v is None:
+                continue
+            if k == "args":
+                continue
+            self.cfg.set(k.lower(), v)
 
     def load(self):
         return self.application
@@ -275,7 +278,7 @@ def job_execution_deserializer(data: Dict["str", Any]):
 
 
 def create_server(
-    catalog_options: Dict[str, str], options: Dict[str, str], is_production=True
+    catalog_options: Dict[str, str], is_production=True
 ) -> Tuple[Any, PGCatalog]:
     logging.debug(catalog_options)
     catalog = PGCatalog(
@@ -369,6 +372,6 @@ def create_server(
         logging.debug("{:50s} {:20s} {}".format(rule.endpoint, rule_methods, rule))
 
     if is_production:
-        return Server(app=app, options=options), catalog
+        return Server(app=app), catalog
     else:
         return app, catalog

@@ -23,7 +23,7 @@ services:
       CATALOG_USER: catalog_user
       CATALOG_DB: tokern
       CATALOG_HOST: tokern-demo-catalog
-      SERVER_ADDRESS: "0.0.0.0:4142"
+      GUNICORN_CMD_ARGS: "--bind 0.0.0.0:4142"
   toker-viz:
     image: tokern/data-lineage-viz:latest
     container_name: tokern-data-lineage-visualizer

@@ -25,7 +25,7 @@ services:
       CATALOG_DB: ${CATALOG_DB:-tokern}
       CATALOG_HOST: ${CATALOG_HOST:-tokern-catalog}
       CATALOG_PORT: ${CATALOG_PORT:-5432}
-      SERVER_ADDRESS: "0.0.0.0:4142"
+      GUNICORN_CMD_ARGS: "--bind 0.0.0.0:4142"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
   tokern-viz:
     image: tokern/data-lineage-viz:latest

@@ -140,7 +140,7 @@ def managed_session(save_catalog):
 @pytest.fixture(scope="session")
 def app(setup_catalog):
     config = yaml.safe_load(catalog_conf)
-    app, catalog = create_server(config["catalog"], {}, is_production=False)
+    app, catalog = create_server(config["catalog"], is_production=False)
     yield app
     catalog.close()
 
