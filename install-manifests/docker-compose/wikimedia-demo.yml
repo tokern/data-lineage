@@ -25,7 +25,7 @@ services:
       POSTGRES_USER: etldev
       POSTGRES_DB: wikimedia
   tokern-api:
-    image: tokern/data-lineage:0.8.4-RC1
+    image: tokern/data-lineage:latest
     container_name: tokern-data-lineage
     restart: unless-stopped
     networks:
