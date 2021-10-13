@@ -30,12 +30,6 @@ from data_lineage.server import create_server
     "--catalog-db", help="Postgres Database", envvar="CATALOG_DB", default="tokern"
 )
 @click.option(
-    "--server-address",
-    help="The socket to bind to",
-    envvar="SERVER_ADDRESS",
-    default="127.0.0.1:4142",
-)
-@click.option(
     "--is-production/--not-production",
     help="Run server in development mode",
     default=True,
@@ -47,7 +41,6 @@ def main(
     catalog_host,
     catalog_port,
     catalog_db,
-    server_address,
     is_production,
 ):
     logging.basicConfig(level=getattr(logging, log_level.upper()))
@@ -58,8 +51,7 @@ def main(
         "port": catalog_port,
         "database": catalog_db,
     }
-    options = {"bind": server_address}
-    app, catalog = create_server(catalog, options, is_production=is_production)
+    app, catalog = create_server(catalog, is_production=is_production)
     if is_production:
         app.run()
     else:
