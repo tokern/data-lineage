@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "data-lineage"
-version = "0.8.4"
+version = "0.8.5"
 description = "Open Source Data Lineage Tool for Redshift. Snowflake and many other databases"
 authors = ["Tokern <info@tokern.io>"]
 license = "MIT"

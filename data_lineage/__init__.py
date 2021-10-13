@@ -1,5 +1,5 @@
 # flake8: noqa
-__version__ = "0.8.4"
+__version__ = "0.8.5"
 
 import datetime
 import json
