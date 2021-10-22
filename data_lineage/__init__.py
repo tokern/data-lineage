@@ -4,7 +4,7 @@ __version__ = "0.8.5"
 import datetime
 import json
 import logging
-from typing import Any, Dict, Generator, Generic, List, Optional, Type, TypeVar
+from typing import Any, Dict, Generator, List, Optional, Type, TypeVar
 
 import requests
 from dbcat.catalog.models import JobExecutionStatus
@@ -374,9 +374,7 @@ class Catalog:
 
     def scan_source(self, source: Source) -> bool:
         payload = {"id": source.id}
-        response = self._session.post(
-            url=self._build_url("scanner"), data=json.dumps(payload)
-        )
+        response = self._session.post(url=self._build_url("scanner"), json=payload)
         response.raise_for_status()
         return response.status_code == 200
 
@@ -485,16 +483,15 @@ class Analyze:
         end_time: datetime.datetime,
         name: str = None,
     ) -> JobExecution:
-        response = self._session.post(
-            self._base_url,
-            params={
-                "query": query,
-                "name": name,
-                "source_id": source.id,
-                "start_time": start_time.isoformat(),
-                "end_time": end_time.isoformat(),
-            },
-        )
+        payload = {
+            "query": query,
+            "name": name,
+            "source_id": source.id,
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+        }
+
+        response = self._session.post(self._base_url, json=payload,)
         if response.status_code == 441:
             raise TableNotFound(response.json()["message"])
         elif response.status_code == 442:
@@ -522,7 +519,7 @@ class Parse:
 
     def parse(self, query: str, source: Source):
         response = self._session.post(
-            self._base_url, params={"query": query, "source_id": source.id},
+            self._base_url, json={"query": query, "source_id": source.id},
         )
         logging.debug(response.text)
         response.raise_for_status()
