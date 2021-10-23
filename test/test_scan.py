@@ -69,7 +69,7 @@ def load_all_data():
 def setup_catalog_and_data(load_all_data, rest_catalog):
     catalog = rest_catalog
     source = catalog.add_source(
-        name="pg",
+        name="pg_scan",
         source_type="postgresql",
         uri="127.0.0.1",
         username="piiuser",
@@ -85,12 +85,12 @@ def fake_queue():
     yield Queue(is_async=False, connection=FakeStrictRedis())
 
 
-def test_scan_source(setup_catalog_and_data):
+def test_scan_source(setup_catalog_and_data, scan_sdk):
     catalog, source = setup_catalog_and_data
-    catalog.scan_source(source)
+    scan_sdk.start(source)
 
-    pg_source = catalog.get_source("pg")
+    pg_source = catalog.get_source("pg_scan")
     assert pg_source is not None
 
-    no_pii = catalog.get_table("pg", "public", "no_pii")
+    no_pii = catalog.get_table("pg_scan", "public", "no_pii")
     assert no_pii is not None

@@ -14,18 +14,15 @@ from data_lineage import (
 
 
 def test_get_sources(rest_catalog):
-    sources = list(rest_catalog.get_sources())
-    assert len(sources) == 1
-    source = sources[0]
+    source = rest_catalog.get_source("test")
     assert source.name == "test"
     assert source.id is not None
 
 
 def test_get_schemata(rest_catalog):
-    schemata = list(rest_catalog.get_schemata())
-    assert len(schemata) == 1
-    assert schemata[0].name == "default"
-    assert schemata[0].id is not None
+    schema = rest_catalog.get_schema("test", "default")
+    assert schema.name == "default"
+    assert schema.id is not None
 
 
 def test_get_tables(rest_catalog):
@@ -34,7 +31,7 @@ def test_get_tables(rest_catalog):
         assert table.id is not None
         assert table.name is not None
         num += 1
-    assert num == 9
+    assert num == 12
 
 
 def test_get_columns(rest_catalog):
@@ -46,7 +43,7 @@ def test_get_columns(rest_catalog):
         assert column.sort_order is not None
         num += 1
 
-    assert num == 34
+    assert num == 40
 
 
 def test_get_source_by_id(rest_catalog):

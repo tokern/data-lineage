@@ -339,7 +339,7 @@ def create_server(
     )
 
     app = Flask(__name__)
-    queue = Queue(is_async=True, connection=connection)
+    queue = Queue(is_async=is_production, connection=connection)
 
     # Create CRUD APIs
     methods = ["DELETE", "GET", "PATCH", "POST"]
