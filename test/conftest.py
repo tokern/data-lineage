@@ -5,8 +5,9 @@ import yaml
 from dbcat import PGCatalog as DbCatalog
 from dbcat import catalog_connection, init_db
 from dbcat.catalog import CatSource
+from fakeredis import FakeStrictRedis
 
-from data_lineage import Analyze, Catalog, Graph
+from data_lineage import Analyze, Catalog, Graph, Scan
 from data_lineage.parser import parse
 from data_lineage.server import create_server
 
@@ -140,7 +141,9 @@ def managed_session(save_catalog):
 @pytest.fixture(scope="session")
 def app(setup_catalog):
     config = yaml.safe_load(catalog_conf)
-    app, catalog = create_server(config["catalog"], is_production=False)
+    app, catalog = create_server(
+        config["catalog"], connection=FakeStrictRedis(), is_production=False
+    )
     yield app
     catalog.close()
 
@@ -158,3 +161,8 @@ def graph_sdk(live_server):
 @pytest.fixture(scope="session")
 def parser_sdk(live_server):
     yield Analyze("http://{}:{}".format(live_server.host, live_server.port))
+
+
+@pytest.fixture(scope="session")
+def scan_sdk(live_server):
+    yield Scan("http://{}:{}".format(live_server.host, live_server.port))

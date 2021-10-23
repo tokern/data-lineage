@@ -1,6 +1,7 @@
 import logging
 
 import click
+from redis import Redis
 
 from data_lineage import __version__
 from data_lineage.server import create_server
@@ -30,6 +31,18 @@ from data_lineage.server import create_server
     "--catalog-db", help="Postgres Database", envvar="CATALOG_DB", default="tokern"
 )
 @click.option(
+    "--redis-host",
+    help="Redis host for queueing scans",
+    envvar="REDIS_HOST",
+    default="localhost",
+)
+@click.option(
+    "--redis-port",
+    help="Redis port for queueing scans",
+    envvar="REDIS_PORT",
+    default="6379",
+)
+@click.option(
     "--is-production/--not-production",
     help="Run server in development mode",
     default=True,
@@ -41,6 +54,8 @@ def main(
     catalog_host,
     catalog_port,
     catalog_db,
+    redis_host,
+    redis_port,
     is_production,
 ):
     logging.basicConfig(level=getattr(logging, log_level.upper()))
@@ -51,7 +66,10 @@ def main(
         "port": catalog_port,
         "database": catalog_db,
     }
-    app, catalog = create_server(catalog, is_production=is_production)
+    connection = Redis(redis_host, redis_port)
+    app, catalog = create_server(
+        catalog, connection=connection, is_production=is_production
+    )
     if is_production:
         app.run()
     else:

@@ -372,12 +372,6 @@ class Catalog:
         payload = self._post(path="sources", data=data, type="sources")
         return self._obj_factory(payload, Source)
 
-    def scan_source(self, source: Source) -> bool:
-        payload = {"id": source.id}
-        response = self._session.post(url=self._build_url("scanner"), json=payload)
-        response.raise_for_status()
-        return response.status_code == 200
-
     def add_schema(self, name: str, source: Source) -> Schema:
         data = {"name": name, "source_id": source.id}
         payload = self._post(path="schemata", data=data, type="schemata")
@@ -522,5 +516,32 @@ class Parse:
             self._base_url, json={"query": query, "source_id": source.id},
         )
         logging.debug(response.text)
+        response.raise_for_status()
+        return response.json()
+
+
+class Scan:
+    def __init__(self, url: str):
+        self._base_url = furl(url) / "api/v1/scan"
+        self._session = requests.Session()
+
+    def start(self, source: Source) -> Dict[str, str]:
+        payload = {"id": source.id}
+        response = self._session.post(url=self._base_url, json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def list(self) -> List[Dict[str, str]]:
+        response = self._session.post(url=self._base_url)
+        response.raise_for_status()
+        return response.json()
+
+    def get(self, job_id: str) -> Dict[str, str]:
+        response = self._session.get(url=furl(self._base_url) / job_id)
+        response.raise_for_status()
+        return response.json()
+
+    def cancel(self, job_id: str) -> Dict[str, str]:
+        response = self._session.put(url=furl(self._base_url) / job_id)
         response.raise_for_status()
         return response.json()

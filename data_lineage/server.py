@@ -6,7 +6,6 @@ import flask_restless
 import gunicorn.app.base
 from dbcat import Catalog, PGCatalog, init_db
 from dbcat.catalog import CatColumn
-from dbcat.catalog.db import DbScanner
 from dbcat.catalog.models import (
     CatSchema,
     CatSource,
@@ -20,6 +19,8 @@ from dbcat.catalog.models import (
 from flask import Flask
 from flask_restful import Api, Resource, reqparse
 from pglast.parser import ParseError
+from rq import Queue
+from rq import job as RqJob
 from werkzeug.exceptions import NotFound, UnprocessableEntity
 
 from data_lineage import ColumnNotFound, SemanticError, TableNotFound
@@ -29,6 +30,7 @@ from data_lineage.parser import (
     parse,
     parse_dml_query,
 )
+from data_lineage.worker import scan
 
 
 class TableNotFoundHTTP(NotFound):
@@ -100,19 +102,58 @@ class Kedro(Resource):
         return {"id": "task:{}".format(node.id), "name": node.name, "type": "task"}
 
 
-class Scanner(Resource):
-    def __init__(self, catalog: Catalog):
+class ScanList(Resource):
+    def __init__(self, catalog: PGCatalog, queue: Queue):
         self._catalog = catalog
+        self._queue = queue
         self._parser = reqparse.RequestParser()
         self._parser.add_argument("id", required=True, help="ID of the resource")
 
     def post(self):
         args = self._parser.parse_args()
-        logging.debug("Args for scanning: {}".format(args))
-        with self._catalog.managed_session:
-            source = self._catalog.get_source_by_id(int(args["id"]))
-            DbScanner(self._catalog, source).scan()
-            return "Scanned {}".format(source.fqdn), 200
+        logging.info("Args for scanning: {}".format(args))
+        job = self._queue.enqueue(
+            scan,
+            {
+                "user": self._catalog.user,
+                "password": self._catalog.password,
+                "database": self._catalog.database,
+                "host": self._catalog.host,
+                "port": self._catalog.port,
+            },
+            int(args["id"]),
+        )
+
+        return {"id": job.id, "status": "queued"}, 200
+
+    def get(self):
+        job_list = []
+        for job in self._queue.started_job_registry.get_job_ids():
+            job_list.append({"id": job, "status": "started"})
+
+        for job in self._queue.finished_job_registry.get_job_ids():
+            job_list.append({"id": job, "status": "finished"})
+
+        for job in self._queue.failed_job_registry.get_job_ids():
+            job_list.append({"id": job, "status": "failed"})
+
+        return job_list, 200
+
+
+class Scan(Resource):
+    def __init__(self, catalog: PGCatalog, queue: Queue):
+        self._catalog = catalog
+        self._queue = queue
+        self._parser = reqparse.RequestParser()
+        self._parser.add_argument("id", required=True, help="ID of the resource")
+
+    def get(self, job_id):
+        status = RqJob.Job.fetch(job_id, connection=self._queue.connection).get_status()
+        return {"id": job_id, "status": status}, 200
+
+    def put(self, job_id):
+        RqJob.Job.fetch(job_id, connection=self._queue.connection).cancel()
+        return {"message": "Job {} cancelled".format(job_id)}, 200
 
 
 class Parse(Resource):
@@ -278,7 +319,7 @@ def job_execution_deserializer(data: Dict["str", Any]):
 
 
 def create_server(
-    catalog_options: Dict[str, str], is_production=True
+    catalog_options: Dict[str, str], connection, is_production=True
 ) -> Tuple[Any, PGCatalog]:
     logging.debug(catalog_options)
     catalog = PGCatalog(
@@ -298,6 +339,7 @@ def create_server(
     )
 
     app = Flask(__name__)
+    queue = Queue(is_async=is_production, connection=connection)
 
     # Create CRUD APIs
     methods = ["DELETE", "GET", "PATCH", "POST"]
@@ -355,10 +397,17 @@ def create_server(
         Kedro, "/api/main", resource_class_kwargs={"catalog": restful_catalog}
     )
     restful_manager.add_resource(
-        Scanner,
-        "{}/scanner".format(url_prefix),
-        resource_class_kwargs={"catalog": restful_catalog},
+        ScanList,
+        "/api/v1/scan",
+        resource_class_kwargs={"catalog": restful_catalog, "queue": queue},
     )
+
+    restful_manager.add_resource(
+        Scan,
+        "/api/v1/scan/<job_id>",
+        resource_class_kwargs={"catalog": restful_catalog, "queue": queue},
+    )
+
     restful_manager.add_resource(
         Analyze, "/api/v1/analyze", resource_class_kwargs={"catalog": restful_catalog}
     )

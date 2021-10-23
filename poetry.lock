@@ -31,7 +31,7 @@ all = ["flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.
 
 [[package]]
 name = "amundsen-databuilder"
-version = "6.2.2"
+version = "6.3.1"
 description = "Amundsen Data builder"
 category = "main"
 optional = false
@@ -48,7 +48,7 @@ google-api-python-client = {version = ">=1.6.0,<2.0.0dev", optional = true, mark
 google-auth = {version = ">=1.0.0,<2.0.0dev", optional = true, markers = "extra == \"bigquery\""}
 google-auth-httplib2 = {version = ">=0.0.1", optional = true, markers = "extra == \"bigquery\""}
 httplib2 = ">=0.18.0"
-Jinja2 = ">=2.10.0,<2.12"
+Jinja2 = ">=2.10.0,<4"
 more-itertools = ">=4.2.0"
 mysqlclient = {version = ">=1.3.6,<3", optional = true, markers = "extra == \"rds\""}
 neo4j-driver = ">=1.7.2,<2.0"
@@ -71,7 +71,7 @@ unicodecsv = ">=0.14.1,<1.0"
 unidecode = "*"
 
 [package.extras]
-all = ["elasticsearch (>=6.2.0,<8.0)", "neo4j-driver (>=1.7.2,<2.0)", "requests (>=2.25.0,<3.0)", "freezegun (>=1.1.0)", "atomicwrites (>=1.1.5)", "more-itertools (>=4.2.0)", "pluggy (>=0.6.0)", "py (>=1.10.0)", "pyhocon (>=0.3.42)", "pyparsing (>=2.2.0)", "sqlalchemy (>=1.3.6,<1.4)", "wheel (>=0.31.1)", "neotime (>=1.7.1)", "pytz (>=2018.4)", "statsd (>=3.2.1)", "retrying (>=1.3.3)", "unicodecsv (>=0.14.1,<1.0)", "httplib2 (>=0.18.0)", "unidecode", "Jinja2 (>=2.10.0,<2.12)", "pandas (>=0.21.0,<1.2.0)", "responses (>=0.10.6)", "amundsen-common (>=0.16.0)", "amundsen-rds (==0.0.6)", "flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.8.0,<5.9.0)", "mock (>=4.0.3)", "mypy (>=0.812,<0.900)", "pytest (>=6.2.4)", "pytest-cov (>=2.12.0)", "pytest-env (>=0.6.2)", "pytest-mock (>=3.6.1)", "typed-ast (>=1.4.3)", "confluent-kafka (==1.0.0)", "cassandra-driver (==3.20.1)", "boto3 (==1.17.23)", "snowflake-connector-python", "snowflake-sqlalchemy", "PyAthena[sqlalchemy] (>=1.0.0,<2.0.0)", "google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.0.0,<2.0.0dev)", "jsonpath-rw (==1.4.0)", "ibm-db (==3.0.1)", "ibm-db-sa-py3 (==0.3.1-1)", "pyodbc (==4.0.30)", "pydruid", "pyspark (==3.0.1)", "feast (==0.8.0)", "amundsen-gremlin (>=0.0.9)", "Flask (==1.0.2)", "gremlinpython (==3.4.3)", "requests-aws4auth (==1.1.0)", "typing-extensions (==3.7.4)", "overrides (==2.5)", "mysqlclient (>=1.3.6,<3)", "pyatlasclient (==1.1.2)", "apache-atlas (>=0.0.11)", "simple-salesforce (>=1.11.2)", "cx-Oracle (==8.2.1)"]
+all = ["elasticsearch (>=6.2.0,<8.0)", "neo4j-driver (>=1.7.2,<2.0)", "requests (>=2.25.0,<3.0)", "freezegun (>=1.1.0)", "atomicwrites (>=1.1.5)", "more-itertools (>=4.2.0)", "pluggy (>=0.6.0)", "py (>=1.10.0)", "pyhocon (>=0.3.42)", "pyparsing (>=2.2.0)", "sqlalchemy (>=1.3.6,<1.4)", "wheel (>=0.31.1)", "neotime (>=1.7.1)", "pytz (>=2018.4)", "statsd (>=3.2.1)", "retrying (>=1.3.3)", "unicodecsv (>=0.14.1,<1.0)", "httplib2 (>=0.18.0)", "unidecode", "Jinja2 (>=2.10.0,<4)", "pandas (>=0.21.0,<1.2.0)", "responses (>=0.10.6)", "amundsen-common (>=0.16.0)", "amundsen-rds (==0.0.6)", "flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.8.0,<5.9.0)", "mock (>=4.0.3)", "mypy (>=0.812,<0.900)", "pytest (>=6.2.4)", "pytest-cov (>=2.12.0)", "pytest-env (>=0.6.2)", "pytest-mock (>=3.6.1)", "typed-ast (>=1.4.3)", "confluent-kafka (==1.0.0)", "cassandra-driver (==3.20.1)", "boto3 (==1.17.23)", "snowflake-connector-python", "snowflake-sqlalchemy", "PyAthena[sqlalchemy] (>=1.0.0,<2.0.0)", "google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.0.0,<2.0.0dev)", "jsonpath-rw (==1.4.0)", "ibm-db (==3.0.1)", "ibm-db-sa-py3 (==0.3.1-1)", "pyodbc (==4.0.30)", "pydruid", "pyspark (==3.0.1)", "feast (==0.8.0)", "amundsen-gremlin (>=0.0.9)", "Flask (==1.0.2)", "gremlinpython (==3.4.3)", "requests-aws4auth (==1.1.0)", "typing-extensions (==3.7.4)", "overrides (==2.5)", "mysqlclient (>=1.3.6,<3)", "pyatlasclient (==1.1.2)", "apache-atlas (>=0.0.11)", "simple-salesforce (>=1.11.2)", "cx-Oracle (==8.2.1)"]
 athena = ["PyAthena[sqlalchemy] (>=1.0.0,<2.0.0)"]
 atlas = ["pyatlasclient (==1.1.2)", "apache-atlas (>=0.0.11)"]
 bigquery = ["google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.0.0,<2.0.0dev)"]
@@ -478,6 +478,24 @@ description = "Discover and load entry points from installed packages."
 category = "dev"
 optional = false
 python-versions = ">=2.7"
+
+[[package]]
+name = "fakeredis"
+version = "1.6.1"
+description = "Fake implementation of redis API for testing purposes."
+category = "dev"
+optional = false
+python-versions = ">=3.5"
+
+[package.dependencies]
+packaging = "*"
+redis = "<3.6.0"
+six = ">=1.12"
+sortedcontainers = "*"
+
+[package.extras]
+aioredis = ["aioredis"]
+lua = ["lupa"]
 
 [[package]]
 name = "filelock"
@@ -1854,6 +1872,17 @@ optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*"
 
 [[package]]
+name = "redis"
+version = "3.5.3"
+description = "Python client for Redis key-value store"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[package.extras]
+hiredis = ["hiredis (>=0.1.3)"]
+
+[[package]]
 name = "regex"
 version = "2021.8.3"
 description = "Alternative regular expression module, to replace re."
@@ -1951,6 +1980,18 @@ python-versions = "*"
 six = ">=1.7.0"
 
 [[package]]
+name = "rq"
+version = "1.10.0"
+description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[package.dependencies]
+click = ">=5.0.0"
+redis = ">=3.5.0"
+
+[[package]]
 name = "rsa"
 version = "4.7.2"
 description = "Pure-Python RSA implementation"
@@ -2037,6 +2078,14 @@ sqlalchemy = "<2.0.0"
 
 [package.extras]
 development = ["pytest (<6.1.0)", "pytest-cov", "pytest-rerunfailures", "pytest-timeout", "coverage", "pexpect", "mock", "pytz", "pytzdata", "cython", "more-itertools", "numpy", "pandas (==0.24.2)", "pandas (>=1.0.0,<1.1.0)"]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
+category = "dev"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "sqlalchemy"
@@ -2207,6 +2256,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "types-redis"
+version = "3.5.15"
+description = "Typing stubs for redis"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "types-requests"
 version = "0.1.13"
 description = "Typing stubs for requests"
@@ -2347,7 +2404,7 @@ notebook = ">=4.4.1"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "ca3dc31cb02b5e7f6698363cf75ad95746c72241feb27532ea18a6fb66b665d3"
+content-hash = "4da67fec90404d516141d75cd9256a6a57cfe245ed4a615f83d0e8361ecef077"
 
 [metadata.files]
 alembic = [
@@ -2359,8 +2416,8 @@ amundsen-common = [
     {file = "amundsen_common-0.19.0-py3-none-any.whl", hash = "sha256:ebc48b673636484096723c6eca259675358ac88a9b7dcd3109f0355511457b0c"},
 ]
 amundsen-databuilder = [
-    {file = "amundsen-databuilder-6.2.2.tar.gz", hash = "sha256:a1ea97a532d7fbb8bbc8c66829ac92165f4290e10a38173238ae88287501754a"},
-    {file = "amundsen_databuilder-6.2.2-py3-none-any.whl", hash = "sha256:4b7a2325215acc1c4f76423970d961fe2d19cea0f417902f6e16ba9afbb7e625"},
+    {file = "amundsen-databuilder-6.3.1.tar.gz", hash = "sha256:f06d30f9d3a9a940ffa4ed7a279e1a02dd0c2930b7ea8cea79ca2b3c50254ad6"},
+    {file = "amundsen_databuilder-6.3.1-py3-none-any.whl", hash = "sha256:270a5fc0cfcf14f4161086574456f7061ce28fc8dd2e06789e3d98eba62de267"},
 ]
 amundsen-rds = [
     {file = "amundsen-rds-0.0.6.tar.gz", hash = "sha256:9e365885c0ef064b3298a6013fd2b9a3385a475b4814bdfcef1b23fc5a1d811c"},
@@ -2677,6 +2734,10 @@ elasticsearch = [
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
     {file = "entrypoints-0.3.tar.gz", hash = "sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451"},
+]
+fakeredis = [
+    {file = "fakeredis-1.6.1-py3-none-any.whl", hash = "sha256:5eb1516f1fe1813e9da8f6c482178fc067af09f53de587ae03887ef5d9d13024"},
+    {file = "fakeredis-1.6.1.tar.gz", hash = "sha256:0d06a9384fb79da9f2164ce96e34eb9d4e2ea46215070805ea6fd3c174590b47"},
 ]
 filelock = [
     {file = "filelock-3.0.12-py3-none-any.whl", hash = "sha256:929b7d63ec5b7d6b71b0fa5ac14e030b3f70b75747cef1b10da9b879fef15836"},
@@ -3404,6 +3465,10 @@ qtpy = [
     {file = "QtPy-1.10.0-py2.py3-none-any.whl", hash = "sha256:f683ce6cd825ba8248a798bf1dfa1a07aca387c88ae44fa5479537490aace7be"},
     {file = "QtPy-1.10.0.tar.gz", hash = "sha256:3d20f010caa3b2c04835d6a2f66f8873b041bdaf7a76085c2a0d7890cdd65ea9"},
 ]
+redis = [
+    {file = "redis-3.5.3-py2.py3-none-any.whl", hash = "sha256:432b788c4530cfe16d8d943a09d40ca6c16149727e4afe8c2c9d5580c59d9f24"},
+    {file = "redis-3.5.3.tar.gz", hash = "sha256:0e7e0cfca8660dea8b7d5cd8c4f6c5e29e11f31158c0b0ae91a397f00e5a05a2"},
+]
 regex = [
     {file = "regex-2021.8.3-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:8764a78c5464ac6bde91a8c87dd718c27c1cabb7ed2b4beaf36d3e8e390567f9"},
     {file = "regex-2021.8.3-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4551728b767f35f86b8e5ec19a363df87450c7376d7419c3cac5b9ceb4bce576"},
@@ -3459,6 +3524,10 @@ responses = [
 retrying = [
     {file = "retrying-1.3.3.tar.gz", hash = "sha256:08c039560a6da2fe4f2c426d0766e284d3b736e355f8dd24b37367b0bb41973b"},
 ]
+rq = [
+    {file = "rq-1.10.0-py2.py3-none-any.whl", hash = "sha256:92950a3e60863de48dd1800882939bbaf089a37497ebf9f2ecf7c9fd0a4c4a95"},
+    {file = "rq-1.10.0.tar.gz", hash = "sha256:be09ec43fae9a75a4d26ea3cd520e5fa3ea2ea8cf481be33e6ec9416f0369cac"},
+]
 rsa = [
     {file = "rsa-4.7.2-py3-none-any.whl", hash = "sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2"},
     {file = "rsa-4.7.2.tar.gz", hash = "sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9"},
@@ -3497,6 +3566,10 @@ snowflake-connector-python = [
 snowflake-sqlalchemy = [
     {file = "snowflake-sqlalchemy-1.2.4.tar.gz", hash = "sha256:e79d83d4947a0945488699324802eda4ad4a63c7680ad5b2a42c71f4faa2cd8b"},
     {file = "snowflake_sqlalchemy-1.2.4-py2.py3-none-any.whl", hash = "sha256:e20ee81f3c2f6748b33a69d2e97018930ed09f83e27b1aa36ba5f841eb53bdce"},
+]
+sortedcontainers = [
+    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
+    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
 ]
 sqlalchemy = [
     {file = "SQLAlchemy-1.3.24-cp27-cp27m-macosx_10_14_x86_64.whl", hash = "sha256:87a2725ad7d41cd7376373c15fd8bf674e9c33ca56d0b8036add2d634dba372e"},
@@ -3660,6 +3733,10 @@ types-markupsafe = [
 types-pyyaml = [
     {file = "types-PyYAML-5.4.6.tar.gz", hash = "sha256:745dcb4b1522423026bcc83abb9925fba747f1e8602d902f71a4058f9e7fb662"},
     {file = "types_PyYAML-5.4.6-py3-none-any.whl", hash = "sha256:96f8d3d96aa1a18a465e8f6a220e02cff2f52632314845a364ecbacb0aea6e30"},
+]
+types-redis = [
+    {file = "types-redis-3.5.15.tar.gz", hash = "sha256:e52be0077ca1189d8cce813a20c2a70e9e577f34ab898371c6cbed696a88bdee"},
+    {file = "types_redis-3.5.15-py3-none-any.whl", hash = "sha256:e617c08bff88449b52f6dbdaa9bb81a806f27c89fd30bbf98fe9683ed5d1046a"},
 ]
 types-requests = [
     {file = "types-requests-0.1.13.tar.gz", hash = "sha256:917d6d0a8d8fe2d084ab6dc28d379ec4e6fa34738e905908680bbfa0ce2d8485"},
