@@ -8,7 +8,7 @@
 
 
 Tokern Lineage Engine is _fast_ and _easy to use_ application to collect, visualize and analyze 
-column-level data lineage in databases, data warehouses and data lakes in AWS and GCP.
+column-level data lineage in databases, data warehouses and data lakes in AWS and RDS.
 
 Tokern Lineage helps you browse column-level data lineage 
 * visually using [kedro-viz](https://github.com/quantumblacklabs/kedro-viz)
