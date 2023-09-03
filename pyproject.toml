@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "data-lineage"
-version = "0.9.0"
+version = "0.10.0"
 description = "Open Source Data Lineage Tool for Redshift. Snowflake and many other databases"
 authors = ["Tokern <info@tokern.io>"]
 license = "MIT"
@@ -21,13 +21,13 @@ homepage="https://tokern.io/"
 repository="https://github.com/tokern/data-lineage/"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<=3.10.8"
 pglast = "*"
 inflection = "*"
 networkx = "*"
 click = "^7"
 PyYAML = "*"
-dbcat = "^0.7.1"
+dbcat = "^0.13.1"
 gunicorn = "*"
 flask = "~=1.1"
 flask-restless-ng = "*"
