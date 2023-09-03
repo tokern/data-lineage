@@ -31,7 +31,7 @@ all = ["flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.
 
 [[package]]
 name = "amundsen-databuilder"
-version = "6.7.4"
+version = "6.12.0"
 description = "Amundsen Data builder"
 category = "main"
 optional = false
@@ -43,17 +43,19 @@ amundsen-rds = "0.0.6"
 atomicwrites = ">=1.1.5"
 boto3 = {version = "1.17.23", optional = true, markers = "extra == \"glue\""}
 elasticsearch = ">=6.2.0,<8.0"
+elasticsearch-dsl = "7.4.0"
 freezegun = ">=1.1.0"
 google-api-python-client = {version = ">=1.6.0,<2.0.0dev", optional = true, markers = "extra == \"bigquery\""}
-google-auth = {version = ">=1.0.0,<2.0.0dev", optional = true, markers = "extra == \"bigquery\""}
+google-auth = {version = ">=1.16.0,<3.0.0dev", optional = true, markers = "extra == \"bigquery\""}
 google-auth-httplib2 = {version = ">=0.0.1", optional = true, markers = "extra == \"bigquery\""}
 httplib2 = ">=0.18.0"
 Jinja2 = ">=2.10.0,<4"
+jsonref = "0.2"
 more-itertools = ">=4.2.0"
 mysqlclient = {version = ">=1.3.6,<3", optional = true, markers = "extra == \"rds\""}
 neo4j-driver = ">=1.7.2,<2.0"
 neotime = ">=1.7.1"
-pandas = ">=0.21.0,<1.2.0"
+pandas = ">=0.21.0,<1.5.0"
 pluggy = ">=0.6.0"
 py = ">=1.10.0"
 PyAthena = {version = ">=1.0.0,<2.0.0", extras = ["sqlalchemy"], optional = true, markers = "extra == \"athena\""}
@@ -71,25 +73,26 @@ unicodecsv = ">=0.14.1,<1.0"
 unidecode = "*"
 
 [package.extras]
-all = ["elasticsearch (>=6.2.0,<8.0)", "neo4j-driver (>=1.7.2,<2.0)", "requests (>=2.25.0,<3.0)", "freezegun (>=1.1.0)", "atomicwrites (>=1.1.5)", "more-itertools (>=4.2.0)", "pluggy (>=0.6.0)", "py (>=1.10.0)", "pyhocon (>=0.3.42)", "pyparsing (>=2.2.0)", "sqlalchemy (>=1.3.6,<1.4)", "wheel (>=0.31.1)", "neotime (>=1.7.1)", "pytz (>=2018.4)", "statsd (>=3.2.1)", "retrying (>=1.3.3)", "unicodecsv (>=0.14.1,<1.0)", "httplib2 (>=0.18.0)", "unidecode", "Jinja2 (>=2.10.0,<4)", "pandas (>=0.21.0,<1.2.0)", "responses (>=0.10.6)", "amundsen-common (>=0.16.0)", "amundsen-rds (==0.0.6)", "flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.8.0,<5.9.0)", "mock (>=4.0.3)", "mypy (>=0.812,<0.900)", "pytest (>=6.2.4)", "pytest-cov (>=2.12.0)", "pytest-env (>=0.6.2)", "pytest-mock (>=3.6.1)", "typed-ast (>=1.4.3)", "pyspark (==3.0.1)", "confluent-kafka (==1.0.0)", "cassandra-driver (==3.20.1)", "boto3 (==1.17.23)", "snowflake-connector-python", "snowflake-sqlalchemy", "PyAthena[sqlalchemy] (>=1.0.0,<2.0.0)", "google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.0.0,<2.0.0dev)", "jsonpath-rw (==1.4.0)", "ibm-db (>=3.0.1)", "ibm-db-sa-py3 (>=0.3.1-1)", "pyodbc (==4.0.30)", "pydruid", "feast (==0.17.0)", "amundsen-gremlin (>=0.0.9)", "Flask (==1.0.2)", "gremlinpython (==3.4.3)", "requests-aws4auth (==1.1.0)", "typing-extensions (==3.7.4)", "overrides (==2.5)", "mysqlclient (>=1.3.6,<3)", "pyatlasclient (>=1.1.2)", "apache-atlas (>=0.0.11)", "simple-salesforce (>=1.11.2)", "cx-Oracle (==8.2.1)"]
+all = ["elasticsearch (>=6.2.0,<8.0)", "elasticsearch-dsl (==7.4.0)", "neo4j-driver (>=1.7.2,<2.0)", "requests (>=2.25.0,<3.0)", "freezegun (>=1.1.0)", "atomicwrites (>=1.1.5)", "more-itertools (>=4.2.0)", "pluggy (>=0.6.0)", "py (>=1.10.0)", "pyhocon (>=0.3.42)", "pyparsing (>=2.2.0)", "sqlalchemy (>=1.3.6,<1.4)", "wheel (>=0.31.1)", "neotime (>=1.7.1)", "pytz (>=2018.4)", "statsd (>=3.2.1)", "retrying (>=1.3.3)", "unicodecsv (>=0.14.1,<1.0)", "httplib2 (>=0.18.0)", "unidecode", "Jinja2 (>=2.10.0,<4)", "pandas (>=0.21.0,<1.5.0)", "responses (>=0.10.6)", "jsonref (==0.2)", "amundsen-common (>=0.16.0)", "amundsen-rds (==0.0.6)", "flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.8.0,<5.9.0)", "mock (>=4.0.3)", "mypy (>=0.812,<0.900)", "pytest (>=6.2.4)", "pytest-cov (>=2.12.0)", "pytest-env (>=0.6.2)", "pytest-mock (>=3.6.1)", "typed-ast (>=1.4.3)", "pyspark (==3.0.1)", "confluent-kafka (==1.0.0)", "cassandra-driver (==3.20.1)", "boto3 (==1.17.23)", "snowflake-connector-python", "snowflake-sqlalchemy", "PyAthena[sqlalchemy] (>=1.0.0,<2.0.0)", "google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.16.0,<3.0.0dev)", "jsonpath-rw (==1.4.0)", "ibm-db (>=3.0.1)", "ibm-db-sa-py3 (>=0.3.1-1)", "pyodbc (==4.0.30)", "pydruid", "feast (==0.17.0)", "fastapi (<0.76.0 || >=0.77.0)", "amundsen-gremlin (>=0.0.9)", "Flask (==1.0.2)", "gremlinpython (==3.4.3)", "requests-aws4auth (==1.1.0)", "typing-extensions (==4.0.0)", "overrides (==2.5)", "mysqlclient (>=1.3.6,<3)", "pyatlasclient (>=1.1.2)", "apache-atlas (>=0.0.11)", "simple-salesforce (>=1.11.2)", "cx-Oracle (==8.2.1)", "teradatasqlalchemy (==17.0.0.0)"]
 athena = ["PyAthena[sqlalchemy] (>=1.0.0,<2.0.0)"]
 atlas = ["pyatlasclient (>=1.1.2)", "apache-atlas (>=0.0.11)"]
-bigquery = ["google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.0.0,<2.0.0dev)"]
+bigquery = ["google-api-python-client (>=1.6.0,<2.0.0dev)", "google-auth-httplib2 (>=0.0.1)", "google-auth (>=1.16.0,<3.0.0dev)"]
 cassandra = ["cassandra-driver (==3.20.1)"]
 db2 = ["ibm-db (>=3.0.1)", "ibm-db-sa-py3 (>=0.3.1-1)"]
 delta = ["pyspark (==3.0.1)"]
 dev = ["flake8 (>=3.9.2)", "flake8-tidy-imports (>=4.3.0)", "isort[colors] (>=5.8.0,<5.9.0)", "mock (>=4.0.3)", "mypy (>=0.812,<0.900)", "pytest (>=6.2.4)", "pytest-cov (>=2.12.0)", "pytest-env (>=0.6.2)", "pytest-mock (>=3.6.1)", "typed-ast (>=1.4.3)", "pyspark (==3.0.1)"]
 dremio = ["pyodbc (==4.0.30)"]
 druid = ["pydruid"]
-feast = ["feast (==0.17.0)"]
+feast = ["feast (==0.17.0)", "fastapi (<0.76.0 || >=0.77.0)"]
 glue = ["boto3 (==1.17.23)"]
 jsonpath = ["jsonpath-rw (==1.4.0)"]
 kafka = ["confluent-kafka (==1.0.0)"]
-neptune = ["amundsen-gremlin (>=0.0.9)", "Flask (==1.0.2)", "gremlinpython (==3.4.3)", "requests-aws4auth (==1.1.0)", "typing-extensions (==3.7.4)", "overrides (==2.5)", "boto3 (==1.17.23)"]
+neptune = ["amundsen-gremlin (>=0.0.9)", "Flask (==1.0.2)", "gremlinpython (==3.4.3)", "requests-aws4auth (==1.1.0)", "typing-extensions (==4.0.0)", "overrides (==2.5)", "boto3 (==1.17.23)"]
 oracle = ["cx-Oracle (==8.2.1)"]
 rds = ["sqlalchemy (>=1.3.6,<1.4)", "mysqlclient (>=1.3.6,<3)"]
 salesforce = ["simple-salesforce (>=1.11.2)"]
 snowflake = ["snowflake-connector-python", "snowflake-sqlalchemy"]
+teradata = ["teradatasqlalchemy (==17.0.0.0)"]
 
 [[package]]
 name = "amundsen-rds"
@@ -227,8 +230,8 @@ optional = false
 python-versions = ">=2.7"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=4.6)", "pytest-flake8", "pytest-cov", "pytest-black (>=0.3.7)", "pytest-mypy", "pytest-checkdocs (>=2.4)", "pytest-enabler (>=1.0.1)"]
+testing = ["pytest-enabler (>=1.0.1)", "pytest-checkdocs (>=2.4)", "pytest-mypy", "pytest-black (>=0.3.7)", "pytest-cov", "pytest-flake8", "pytest (>=4.6)"]
+docs = ["rst.linker (>=1.9)", "jaraco.packaging (>=8.2)", "sphinx"]
 
 [[package]]
 name = "black"
@@ -458,18 +461,37 @@ python-versions = "*"
 
 [[package]]
 name = "elasticsearch"
-version = "6.8.2"
+version = "7.17.4"
 description = "Python client for Elasticsearch"
 category = "main"
 optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, <4"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4"
 
 [package.dependencies]
-urllib3 = ">=1.21.1"
+certifi = "*"
+urllib3 = ">=1.21.1,<2"
 
 [package.extras]
-develop = ["requests (>=2.0.0,<3.0.0)", "nose", "coverage", "mock", "pyyaml", "nosexcover", "numpy", "pandas", "sphinx (<1.7)", "sphinx-rtd-theme"]
+async = ["aiohttp (>=3,<4)"]
+develop = ["requests (>=2.0.0,<3.0.0)", "coverage", "mock", "pyyaml", "pytest", "pytest-cov", "sphinx (<1.7)", "sphinx-rtd-theme", "black", "jinja2"]
+docs = ["sphinx (<1.7)", "sphinx-rtd-theme"]
 requests = ["requests (>=2.4.0,<3.0.0)"]
+
+[[package]]
+name = "elasticsearch-dsl"
+version = "7.4.0"
+description = "Python client for Elasticsearch"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[package.dependencies]
+elasticsearch = ">=7.0.0,<8.0.0"
+python-dateutil = "*"
+six = "*"
+
+[package.extras]
+develop = ["mock", "pytest (>=3.0.0)", "pytest-cov", "pytest-mock (<3.0.0)", "pytz", "coverage (<5.0.0)", "sphinx", "sphinx-rtd-theme"]
 
 [[package]]
 name = "entrypoints"
@@ -533,9 +555,9 @@ Jinja2 = ">=2.10.1,<3.0"
 Werkzeug = ">=0.15,<2.0"
 
 [package.extras]
-dev = ["pytest", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
-docs = ["sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
 dotenv = ["python-dotenv"]
+docs = ["sphinx-issues", "sphinxcontrib-log-cabinet", "pallets-sphinx-themes", "sphinx"]
+dev = ["sphinx-issues", "sphinxcontrib-log-cabinet", "pallets-sphinx-themes", "sphinx", "tox", "coverage", "pytest"]
 
 [[package]]
 name = "flask-restful"
@@ -892,6 +914,14 @@ optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
+name = "jsonref"
+version = "0.2"
+description = "An implementation of JSON Reference for Python"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "jsonschema"
 version = "3.2.0"
 description = "An implementation of JSON Schema validation for Python"
@@ -1150,7 +1180,7 @@ test = ["codecov", "coverage", "ipython", "ipykernel", "ipywidgets", "pytest (>=
 
 [[package]]
 name = "nbconvert"
-version = "6.1.0"
+version = "6.3.0"
 description = "Converting Jupyter Notebooks"
 category = "dev"
 optional = false
@@ -1172,11 +1202,11 @@ testpath = "*"
 traitlets = ">=5.0"
 
 [package.extras]
-all = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.2)", "tornado (>=4.0)", "sphinx (>=1.5.1)", "sphinx-rtd-theme", "nbsphinx (>=0.2.12)", "ipython"]
+all = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.6)", "tornado (>=4.0)", "sphinx (>=1.5.1)", "sphinx-rtd-theme", "nbsphinx (>=0.2.12)", "ipython"]
 docs = ["sphinx (>=1.5.1)", "sphinx-rtd-theme", "nbsphinx (>=0.2.12)", "ipython"]
 serve = ["tornado (>=4.0)"]
-test = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.2)"]
-webpdf = ["pyppeteer (==0.2.2)"]
+test = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.6)"]
+webpdf = ["pyppeteer (==0.2.6)"]
 
 [[package]]
 name = "nbformat"
@@ -1357,7 +1387,7 @@ python-dateutil = ">=2.7.3"
 pytz = ">=2017.2"
 
 [package.extras]
-test = ["pytest (>=4.0.2)", "pytest-xdist", "hypothesis (>=3.58)"]
+test = ["hypothesis (>=3.58)", "pytest-xdist", "pytest (>=4.0.2)"]
 
 [[package]]
 name = "pandocfilters"
@@ -1484,8 +1514,8 @@ optional = false
 python-versions = ">=3.6"
 
 [package.extras]
-docs = ["Sphinx (>=4)", "furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-autodoc-typehints (>=1.12)"]
-test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)"]
+test = ["pytest-mock (>=3.6)", "pytest-cov (>=2.7)", "pytest (>=6)", "appdirs (==1.4.4)"]
+docs = ["sphinx-autodoc-typehints (>=1.12)", "proselint (>=0.10.2)", "furo (>=2021.7.5b38)", "Sphinx (>=4)"]
 
 [[package]]
 name = "plette"
@@ -1501,8 +1531,8 @@ six = "*"
 tomlkit = "*"
 
 [package.extras]
-tests = ["pytest", "pytest-xdist", "pytest-cov"]
 validation = ["cerberus"]
+tests = ["pytest-cov", "pytest-xdist", "pytest"]
 
 [[package]]
 name = "pluggy"
@@ -1689,10 +1719,10 @@ optional = false
 python-versions = ">=3.6"
 
 [package.extras]
+tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
+docs = ["zope.interface", "sphinx-rtd-theme", "sphinx"]
+dev = ["pre-commit", "mypy", "coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)", "cryptography (>=3.3.1,<4.0.0)", "zope.interface", "sphinx-rtd-theme", "sphinx"]
 crypto = ["cryptography (>=3.3.1,<4.0.0)"]
-dev = ["sphinx", "sphinx-rtd-theme", "zope.interface", "cryptography (>=3.3.1,<4.0.0)", "pytest (>=6.0.0,<7.0.0)", "coverage[toml] (==5.0.4)", "mypy", "pre-commit"]
-docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
-tests = ["pytest (>=6.0.0,<7.0.0)", "coverage[toml] (==5.0.4)"]
 
 [[package]]
 name = "pyopenssl"
@@ -1777,7 +1807,7 @@ pytest = ">=5.2"
 Werkzeug = ">=0.7"
 
 [package.extras]
-docs = ["sphinx", "sphinx-rtd-theme"]
+docs = ["sphinx-rtd-theme", "sphinx"]
 
 [[package]]
 name = "python-dateutil"
@@ -2152,7 +2182,7 @@ optional = false
 python-versions = ">= 3.5"
 
 [package.extras]
-test = ["pytest", "pathlib2"]
+test = ["pathlib2", "pytest"]
 
 [[package]]
 name = "toml"
@@ -2357,11 +2387,11 @@ colorama = ">=0.3.4,<0.4.2 || >0.4.2"
 six = "*"
 
 [package.extras]
-dev = ["pre-commit", "coverage", "isort", "flake8", "rope", "invoke", "parver", "sphinx", "sphinx-rtd-theme", "flake8-bugbear", "black"]
-requests = ["requests"]
+typing = ["typed-ast", "pytype", "mypytools", "mypy-extensions", "mypy", "typing"]
+tests = ["mock", "twine", "readme-renderer", "pytest-timeout", "pytest-xdist", "pytest-rerunfailures (<9.0)", "pytest", "hypothesis-fspaths", "hypothesis"]
 spinner = ["yaspin"]
-tests = ["hypothesis", "hypothesis-fspaths", "pytest", "pytest-rerunfailures (<9.0)", "pytest-xdist", "pytest-timeout", "readme-renderer", "twine", "mock"]
-typing = ["typing", "mypy", "mypy-extensions", "mypytools", "pytype", "typed-ast"]
+requests = ["requests"]
+dev = ["black", "flake8-bugbear", "sphinx-rtd-theme", "sphinx", "parver", "invoke", "rope", "flake8", "isort", "coverage", "pre-commit"]
 
 [[package]]
 name = "wcwidth"
@@ -2388,8 +2418,8 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
-dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinx-issues"]
 watchdog = ["watchdog"]
+dev = ["sphinx-issues", "pallets-sphinx-themes", "sphinx", "tox", "coverage", "pytest-timeout", "pytest"]
 
 [[package]]
 name = "widgetsnbextension"
@@ -2417,8 +2447,8 @@ amundsen-common = [
     {file = "amundsen_common-0.19.0-py3-none-any.whl", hash = "sha256:ebc48b673636484096723c6eca259675358ac88a9b7dcd3109f0355511457b0c"},
 ]
 amundsen-databuilder = [
-    {file = "amundsen-databuilder-6.7.4.tar.gz", hash = "sha256:dd0fdb4ec25e4bd49112d747bbdcec76b5d8a0f6845eed3bb2c8d9f3f6df3319"},
-    {file = "amundsen_databuilder-6.7.4-py3-none-any.whl", hash = "sha256:ab8b3de0fca35ac6c1e09d7b36f7c112ede167e511fe44bbcf03b285529e246d"},
+    {file = "amundsen-databuilder-6.12.0.tar.gz", hash = "sha256:81e0c42c27b93c377276d6f4fd60db1c8f5811e3fa0365e14703c31cfc562cb6"},
+    {file = "amundsen_databuilder-6.12.0-py3-none-any.whl", hash = "sha256:2a43ffc32a31dbb9c5e694d20ce7f9dffae0c996fa751317d5d8266e90d30989"},
 ]
 amundsen-rds = [
     {file = "amundsen-rds-0.0.6.tar.gz", hash = "sha256:9e365885c0ef064b3298a6013fd2b9a3385a475b4814bdfcef1b23fc5a1d811c"},
@@ -2736,8 +2766,12 @@ distlib = [
     {file = "distlib-0.3.2.zip", hash = "sha256:106fef6dc37dd8c0e2c0a60d3fca3e77460a48907f335fa28420463a6f799736"},
 ]
 elasticsearch = [
-    {file = "elasticsearch-6.8.2-py2.py3-none-any.whl", hash = "sha256:1aedf00b73f5d1e77cb4df70fec58f2efb664be4ce2686374239aa6c0373c65c"},
-    {file = "elasticsearch-6.8.2.tar.gz", hash = "sha256:c3a560bb83e4981b5a5c82080d2ceb99686d33692ef53365656129478aa5ddb2"},
+    {file = "elasticsearch-7.17.4-py2.py3-none-any.whl", hash = "sha256:81c1d15b0f9382b2dc40a896c634f8de09bfcd5079e19a8412940a9ddfbde64b"},
+    {file = "elasticsearch-7.17.4.tar.gz", hash = "sha256:540d646908761120926850e98230ffc08fee9a3f9b45073d42de08246f598652"},
+]
+elasticsearch-dsl = [
+    {file = "elasticsearch-dsl-7.4.0.tar.gz", hash = "sha256:c4a7b93882918a413b63bed54018a1685d7410ffd8facbc860ee7fd57f214a6d"},
+    {file = "elasticsearch_dsl-7.4.0-py2.py3-none-any.whl", hash = "sha256:046ea10820b94c075081b528b4526c5bc776bda4226d702f269a5f203232064b"},
 ]
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
@@ -2861,6 +2895,10 @@ jinja2 = [
 jmespath = [
     {file = "jmespath-0.10.0-py2.py3-none-any.whl", hash = "sha256:cdf6525904cc597730141d61b36f2e4b8ecc257c420fa2f4549bac2c2d0cb72f"},
     {file = "jmespath-0.10.0.tar.gz", hash = "sha256:b85d0567b8666149a93172712e68920734333c0ce7e89b78b3e987f71e5ed4f9"},
+]
+jsonref = [
+    {file = "jsonref-0.2-py3-none-any.whl", hash = "sha256:b1e82fa0b62e2c2796a13e5401fe51790b248f6d9bf9d7212a3e31a3501b291f"},
+    {file = "jsonref-0.2.tar.gz", hash = "sha256:f3c45b121cf6257eafabdc3a8008763aed1cd7da06dbabc59a9e4d2a5e4e6697"},
 ]
 jsonschema = [
     {file = "jsonschema-3.2.0-py2.py3-none-any.whl", hash = "sha256:4e5b3cf8216f577bee9ce139cbe72eca3ea4f292ec60928ff24758ce626cd163"},
@@ -3035,8 +3073,8 @@ nbclient = [
     {file = "nbclient-0.5.4.tar.gz", hash = "sha256:6c8ad36a28edad4562580847f9f1636fe5316a51a323ed85a24a4ad37d4aefce"},
 ]
 nbconvert = [
-    {file = "nbconvert-6.1.0-py3-none-any.whl", hash = "sha256:37cd92ff2ae6a268e62075ff8b16129e0be4939c4dfcee53dc77cc8a7e06c684"},
-    {file = "nbconvert-6.1.0.tar.gz", hash = "sha256:d22a8ff202644d31db254d24d52c3a96c82156623fcd7c7f987bba2612303ec9"},
+    {file = "nbconvert-6.3.0-py3-none-any.whl", hash = "sha256:8f23fbeabda4a500685d788ee091bf22cf34119304314304fb39f16e2fc32f37"},
+    {file = "nbconvert-6.3.0.tar.gz", hash = "sha256:5e77d6203854944520105e38f2563a813a4a3708e8563aa598928a3b5ee1081a"},
 ]
 nbformat = [
     {file = "nbformat-5.1.3-py3-none-any.whl", hash = "sha256:eb8447edd7127d043361bc17f2f5a807626bc8e878c7709a1c647abda28a9171"},
